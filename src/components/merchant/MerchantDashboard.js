@@ -1,8 +1,9 @@
+// Moved from components/MerchantDashboard.js
 'use client'
-import SearchFilters from './SearchFilters';
-import DashboardStats from './DashboardStats';
-import DashboardNavbar from './DashboardNavbar';
-import WarehouseCard from './WarehouseCard';
+import SearchFilters from '../SearchFilters';
+import DashboardStats from '../DashboardStats';
+import DashboardNavbar from '../DashboardNavbar';
+import WarehouseCard from '../WarehouseCard';
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { warehouses, conversations } from '@/data/warehouseData'

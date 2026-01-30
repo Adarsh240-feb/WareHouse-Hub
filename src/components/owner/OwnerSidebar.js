@@ -1,7 +1,7 @@
 'use client'
 import { LayoutDashboard, Building2, PlusCircle, MessageSquare, Calendar, Settings, LogOut } from 'lucide-react';
 
-export default function OwnerSidebar({ activeTab, setActiveTab }) {
+export default function OwnerSidebar({ activeTab, setActiveTab, onLogout }) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'my-warehouses', label: 'My Warehouses', icon: Building2 },
@@ -44,7 +44,7 @@ export default function OwnerSidebar({ activeTab, setActiveTab }) {
           <Settings className="w-5 h-5 text-slate-400" />
           Settings
         </button>
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-medium mt-1">
+        <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-medium mt-1" onClick={onLogout}>
           <LogOut className="w-5 h-5" />
           Logout
         </button>

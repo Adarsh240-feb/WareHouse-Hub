@@ -7,8 +7,8 @@ import WhyWarehouseHub from '@/components/WhyWarehouseHub'
 import Login from '@/components/Login'
 import GetStarted from '@/components/GetStarted'
 import Footer from '@/components/Footer'
-import MerchantDashboard from '@/components/MerchantDashboard'
-import OwnerDashboard from '@/components/OwnerDashboard'
+import MerchantDashboard from '@/components/merchant/MerchantDashboard'
+import OwnerDashboard from '@/components/owner/OwnerDashboard'
 import ChatBox from '@/components/ChatBox'
 
 export default function Home() {

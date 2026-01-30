@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react';
-import Inquiries from './owner/Inquiries';
-import OwnerSidebar from './owner/OwnerSidebar';
-import DashboardHome from './owner/DashboardHome';
-import AddWarehouse from './owner/AddWarehouse'; 
-import MyWarehouses from './owner/MyWarehouses'; 
-import Availability from './owner/Availability';
+import Inquiries from './Inquiries';
+import OwnerSidebar from './OwnerSidebar';
+import DashboardHome from './DashboardHome';
+import AddWarehouse from './AddWarehouse'; 
+import MyWarehouses from './MyWarehouses'; 
+import Availability from './Availability';
 
 export default function OwnerDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -14,7 +14,7 @@ export default function OwnerDashboard({ user, onLogout }) {
     <div className="min-h-screen bg-slate-50 flex">
       
       {/* Sidebar */}
-      <OwnerSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <OwnerSidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} />
 
       {/* Main Content */}
       <main className="flex-1 ml-64">
