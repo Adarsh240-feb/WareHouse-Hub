@@ -1,7 +1,7 @@
 'use client'
-import SearchFilters from '../SearchFilters';
-import WarehouseCard from '../WarehouseCard';
-import DashboardNavbar from '../DashboardNavbar'; // Ensure this is imported
+import SearchFilters from '../commonfiles/SearchFilters';
+import WarehouseCard from '../commonfiles/WarehouseCard';
+import DashboardNavbar from '../commonfiles/DashboardNavbar'; // Ensure this is imported
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { warehouses, conversations } from '@/data/warehouseData';

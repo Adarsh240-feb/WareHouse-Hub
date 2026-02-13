@@ -1,15 +1,15 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Navbar from '@/components/Navbar'
-import Hero from '@/components/Hero'
-import HowItWorks from '@/components/HowItWorks'
-import WhyWarehouseHub from '@/components/WhyWarehouseHub'
-import Login from '@/components/Login'
-import GetStarted from '@/components/GetStarted'
-import Footer from '@/components/Footer'
+import Navbar from '@/components/commonfiles/Navbar'
+import Hero from '@/components/commonfiles/Hero'
+import HowItWorks from '@/components/commonfiles/HowItWorks'
+import WhyWarehouseHub from '@/components/commonfiles/WhyWarehouseHub'
+import Login from '@/components/commonfiles/Login'
+import GetStarted from '@/components/commonfiles/GetStarted'
+import Footer from '@/components/commonfiles/Footer'
 import MerchantDashboard from '@/components/merchant/MerchantDashboard'
 import OwnerDashboard from '@/components/owner/OwnerDashboard'
-import ChatBox from '@/components/ChatBox'
+import ChatBox from '@/components/commonfiles/ChatBox'
 
 export default function Home() {
   const [currentUser, setCurrentUser] = useState(null)
