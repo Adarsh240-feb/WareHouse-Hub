@@ -13,11 +13,64 @@ import {
   sendEmailVerification,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  fetchSignInMethodsForEmail
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from './firebase';
+
+/**
+ * Validate email format
+ * @param {string} email - Email address to validate
+ * @returns {boolean} True if email is valid
+ */
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+/**
+ * Validate password strength
+ * @param {string} password - Password to validate
+ * @returns {Object} Validation result with isValid and message
+ */
+const validatePassword = (password) => {
+  if (password.length < 6) {
+    return { isValid: false, message: 'Password must be at least 6 characters long' };
+  }
+  if (password.length < 8) {
+    return { isValid: true, message: 'Password is weak. Consider using 8+ characters with numbers and symbols' };
+  }
+  
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  
+  if (hasNumber && hasSpecial && hasUpper && hasLower) {
+    return { isValid: true, message: 'Strong password' };
+  } else if ((hasNumber || hasSpecial) && (hasUpper || hasLower)) {
+    return { isValid: true, message: 'Moderate password strength' };
+  }
+  
+  return { isValid: true, message: 'Password is weak. Consider adding numbers, symbols, and mixed case' };
+};
+
+/**
+ * Check if email is already registered
+ * @param {string} email - Email to check
+ * @returns {Promise<boolean>} True if email exists
+ */
+export const checkEmailExists = async (email) => {
+  try {
+    const methods = await fetchSignInMethodsForEmail(auth, email);
+    return methods.length > 0;
+  } catch (error) {
+    console.error('Error checking email:', error);
+    return false;
+  }
+};
 
 /**
  * Register a new user with email and password
@@ -30,6 +83,37 @@ import { auth, db, storage } from './firebase';
  */
 export const registerUser = async (email, password, name, userType, company = '') => {
   try {
+    // Validate email format
+    if (!isValidEmail(email)) {
+      throw new Error('Please enter a valid email address');
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      throw new Error(passwordValidation.message);
+    }
+
+    // Check if email already exists and validate userType
+    const emailExists = await checkEmailExists(email);
+    if (emailExists) {
+      // Check if user document exists in Firestore to get userType
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', email));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const existingUserData = querySnapshot.docs[0].data();
+        const existingUserType = existingUserData.userType;
+        
+        if (existingUserType !== userType) {
+          throw new Error(`This email is already registered as ${existingUserType}. Please sign in as ${existingUserType} or use a different email.`);
+        }
+      }
+      
+      throw new Error('This email is already registered. Please sign in instead.');
+    }
+
     // Create user in Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -75,10 +159,21 @@ export const registerUser = async (email, password, name, userType, company = ''
  * Sign in user with email and password
  * @param {string} email - User's email address
  * @param {string} password - User's password
+ * @param {string} userType - Selected account type ('merchant' or 'owner')
  * @returns {Promise<Object>} User data with userType
  */
-export const loginUser = async (email, password) => {
+export const loginUser = async (email, password, userType) => {
   try {
+    // Validate email format
+    if (!isValidEmail(email)) {
+      throw new Error('Please enter a valid email address');
+    }
+
+    // Validate password is not empty
+    if (!password || password.trim().length === 0) {
+      throw new Error('Please enter your password');
+    }
+
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
@@ -87,6 +182,12 @@ export const loginUser = async (email, password) => {
     
     if (userDoc.exists()) {
       const userData = userDoc.data();
+      
+      // Validate userType matches selected type
+      if (userData.userType !== userType) {
+        throw new Error(`This account is registered as ${userData.userType}. Please select the correct account type.`);
+      }
+      
       return {
         uid: user.uid,
         email: user.email,
@@ -136,6 +237,12 @@ export const loginWithGoogle = async (userType) => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+    } else {
+      // User exists - validate userType matches
+      const existingUserData = userDoc.data();
+      if (existingUserData.userType !== userType) {
+        throw new Error(`This account is registered as ${existingUserData.userType}. Please select the correct account type.`);
+      }
     }
 
     const userData = userDoc.exists() ? userDoc.data() : {
@@ -416,44 +523,58 @@ export const refreshEmailVerification = async () => {
  * @returns {Error} Formatted error with user-friendly message
  */
 const handleAuthError = (error) => {
+  // If it's already a custom error message, return it as is
+  if (!error.code || error.code === undefined) {
+    return error;
+  }
+
   let message = 'An error occurred. Please try again.';
   
   switch (error.code) {
     case 'auth/email-already-in-use':
-      message = 'This email is already registered. Please sign in instead.';
+      message = 'This email is already registered. Please sign in instead or use the "Forgot password" option.';
       break;
     case 'auth/invalid-email':
-      message = 'Invalid email address format.';
+      message = 'Please enter a valid email address (e.g., user@example.com).';
       break;
     case 'auth/operation-not-allowed':
-      message = 'Operation not allowed. Please contact support.';
+      message = 'This sign-in method is not enabled. Please contact support.';
       break;
     case 'auth/weak-password':
-      message = 'Password is too weak. Use at least 6 characters.';
+      message = 'Password is too weak. Please use at least 6 characters with a mix of letters and numbers.';
       break;
     case 'auth/user-disabled':
-      message = 'This account has been disabled.';
+      message = 'This account has been disabled. Please contact support for assistance.';
       break;
     case 'auth/user-not-found':
-      message = 'No account found with this email.';
+      message = 'No account found with this email. Please check your email or sign up for a new account.';
       break;
     case 'auth/wrong-password':
-      message = 'Incorrect password. Please try again.';
+      message = 'Incorrect password. Please try again or use "Forgot password" to reset it.';
       break;
     case 'auth/invalid-credential':
-      message = 'Invalid email or password. Please try again.';
+      message = 'Invalid email or password. Please check your credentials and try again.';
       break;
     case 'auth/too-many-requests':
-      message = 'Too many failed attempts. Please try again later.';
+      message = 'Too many failed login attempts. Please wait a few minutes before trying again.';
       break;
     case 'auth/network-request-failed':
-      message = 'Network error. Please check your connection.';
+      message = 'Network error. Please check your internet connection and try again.';
       break;
     case 'auth/popup-closed-by-user':
-      message = 'Sign-in cancelled. Please try again.';
+      message = 'Sign-in window was closed. Please try again.';
+      break;
+    case 'auth/account-exists-with-different-credential':
+      message = 'An account already exists with this email using a different sign-in method.';
+      break;
+    case 'auth/invalid-verification-code':
+      message = 'Invalid verification code. Please try again.';
+      break;
+    case 'auth/invalid-verification-id':
+      message = 'Verification session expired. Please request a new code.';
       break;
     default:
-      message = error.message || 'An unexpected error occurred.';
+      message = error.message || 'An unexpected error occurred. Please try again.';
   }
   
   const err = new Error(message);

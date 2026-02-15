@@ -1,6 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { registerUser, loginUser, loginWithGoogle, resetPassword } from '@/lib/auth'
 
 export default function Login({ onLoginSuccess }) {
@@ -17,12 +17,66 @@ export default function Login({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState({ level: '', message: '', color: '' })
+  const [emailValid, setEmailValid] = useState(true)
+
+  // Email validation helper
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  // Password strength checker
+  const checkPasswordStrength = (password) => {
+    if (!password) {
+      return { level: '', message: '', color: '' }
+    }
+    if (password.length < 6) {
+      return { level: 'weak', message: 'Too short (min 6 characters)', color: 'text-red-600' }
+    }
+    if (password.length < 8) {
+      return { level: 'weak', message: 'Weak - Add more characters', color: 'text-orange-600' }
+    }
+    
+    const hasNumber = /\d/.test(password)
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    const hasUpper = /[A-Z]/.test(password)
+    const hasLower = /[a-z]/.test(password)
+    
+    if (hasNumber && hasSpecial && hasUpper && hasLower) {
+      return { level: 'strong', message: 'Strong password ✓', color: 'text-green-600' }
+    } else if ((hasNumber || hasSpecial) && (hasUpper || hasLower)) {
+      return { level: 'medium', message: 'Moderate - Add symbols/numbers', color: 'text-yellow-600' }
+    }
+    
+    return { level: 'weak', message: 'Weak - Add numbers & symbols', color: 'text-orange-600' }
+  }
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setFormData({ ...formData, [name]: value })
     setError('')
     setSuccessMessage('')
+
+    // Real-time email validation
+    if (name === 'email') {
+      setEmailValid(value === '' || isValidEmail(value))
+    }
+
+    // Real-time password strength check (only for signup)
+    if (name === 'password' && !isLogin) {
+      setPasswordStrength(checkPasswordStrength(value))
+    }
   }
+
+  // Reset password strength when switching between login/signup
+  useEffect(() => {
+    if (isLogin) {
+      setPasswordStrength({ level: '', message: '', color: '' })
+    } else if (formData.password) {
+      setPasswordStrength(checkPasswordStrength(formData.password))
+    }
+  }, [isLogin])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -33,7 +87,7 @@ export default function Login({ onLoginSuccess }) {
     try {
       if (isLogin) {
         // Login with Firebase
-        const user = await loginUser(formData.email, formData.password)
+        const user = await loginUser(formData.email, formData.password, userType)
         onLoginSuccess(user)
       } else {
         // Sign up with Firebase
@@ -332,14 +386,23 @@ export default function Login({ onLoginSuccess }) {
                     onChange={handleInputChange}
                     onFocus={() => setFocused({ ...focused, email: true })}
                     onBlur={() => setFocused({ ...focused, email: false })}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-300"
+                    className={`w-full px-4 py-3 rounded-xl border ${!emailValid ? 'border-red-400' : 'border-slate-300'} focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-300`}
                     placeholder="you@company.com"
                     required
                     whileFocus={{ scale: 1.01 }}
                     animate={{ 
-                      borderColor: focused.email ? 'rgb(249, 115, 22)' : 'rgb(203, 213, 225)' 
+                      borderColor: focused.email ? 'rgb(249, 115, 22)' : (!emailValid ? 'rgb(248, 113, 113)' : 'rgb(203, 213, 225)') 
                     }}
                   />
+                  {!emailValid && formData.email && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-1 text-xs text-red-600"
+                    >
+                      Please enter a valid email address
+                    </motion.p>
+                  )}
                 </div>
 
                 <div>
@@ -380,6 +443,17 @@ export default function Login({ onLoginSuccess }) {
                       )}
                     </button>
                   </div>
+                  {/* Password strength indicator for signup */}
+                  {!isLogin && passwordStrength.message && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`mt-2 text-xs font-medium ${passwordStrength.color} flex items-center gap-1`}
+                    >
+                      <span>🔒</span>
+                      <span>{passwordStrength.message}</span>
+                    </motion.div>
+                  )}
                 </div>
 
                 {isLogin && (

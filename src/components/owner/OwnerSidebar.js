@@ -40,8 +40,15 @@ export default function OwnerSidebar({ activeTab, setActiveTab, onLogout }) {
 
       {/* Bottom Actions */}
       <div className="p-4 border-t border-slate-100">
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors text-sm font-medium">
-          <Settings className="w-5 h-5 text-slate-400" />
+        <button 
+          onClick={() => setActiveTab('settings')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+            activeTab === 'settings'
+              ? 'bg-orange-50 text-orange-700 shadow-sm'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          }`}
+        >
+          <Settings className={`w-5 h-5 ${activeTab === 'settings' ? 'text-orange-600' : 'text-slate-400'}`} />
           Settings
         </button>
         <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-medium mt-1" onClick={onLogout}>
