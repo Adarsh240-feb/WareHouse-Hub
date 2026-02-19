@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Navbar from '@/components/commonfiles/Navbar'
-import Hero from '@/components/commonfiles/Hero'
+import HeroSection from '../../HeroSection'
 import HowItWorks from '@/components/commonfiles/HowItWorks'
 import WhyWarehouseHub from '@/components/commonfiles/WhyWarehouseHub'
 import Login from '@/components/commonfiles/Login'
@@ -45,19 +45,19 @@ export default function Home() {
     return (
       <>
         {currentUser.userType === 'merchant' ? (
-          <MerchantDashboard 
-            user={currentUser} 
+          <MerchantDashboard
+            user={currentUser}
             onLogout={handleLogout}
             onOpenChat={handleOpenChat}
           />
         ) : (
-          <OwnerDashboard 
-            user={currentUser} 
+          <OwnerDashboard
+            user={currentUser}
             onLogout={handleLogout}
             onOpenChat={handleOpenChat}
           />
         )}
-        
+
         {showChat && selectedWarehouse && (
           <ChatBox
             warehouse={selectedWarehouse}
@@ -73,7 +73,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Navbar />
-      <Hero />
+      <HeroSection />
       <WhyWarehouseHub />
       <HowItWorks />
       <Login onLoginSuccess={handleLoginSuccess} />

@@ -1,95 +1,79 @@
-'use client'
-import { UserPlus, Search, Handshake, ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React from 'react';
 
 export default function HowItWorks() {
   const steps = [
     {
       id: 1,
-      title: 'Create Account',
-      desc: 'Sign up as a Merchant or Owner. Verify your identity in seconds.',
-      icon: UserPlus,
-      color: 'bg-blue-100 text-blue-600',
+      title: "Search for the space you need",
+      description: "Tell us where, when, and what type of space you're looking for. We match you with the best options.",
+      icon: (
+        <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+        </svg>
+      ),
     },
     {
       id: 2,
-      title: 'Browse & Match',
-      desc: 'Use our smart filters to find the perfect warehouse for your specific needs.',
-      icon: Search,
-      color: 'bg-orange-100 text-orange-600',
+      title: "Choose your favorite",
+      description: "Compare your top warehouse matches based on photos, facility features, and transparent pricing.",
+      icon: (
+        <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
     },
     {
       id: 3,
-      title: 'Connect & Deal',
-      desc: 'Chat directly with owners, negotiate terms, and sign the lease online.',
-      icon: Handshake,
-      color: 'bg-green-100 text-green-600',
-    },
+      title: "We handle the agreement",
+      description: "We process the lease and payment securely. You connect directly with the warehouse to arrange your move-in.",
+      icon: (
+        <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    }
   ];
 
   return (
-    <section id="how-warehousehub-works" className="py-24 bg-slate-50 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+    <section className="py-24 bg-white w-full">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
-            How WarehouseHub Works
+        <div className="text-center mb-16 relative z-10">
+          <h2 className="text-sm font-bold tracking-widest text-orange-500 uppercase mb-3">
+            How it Works
           </h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Get started in 3 simple steps. No complicated paperwork, no hidden fees.
-          </p>
+          <h3 className="text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight">
+            Renting warehouse space, simplified.
+          </h3>
         </div>
 
-        {/* The Steps Grid */}
-        <div className="relative grid md:grid-cols-3 gap-8">
-          
-          {/* The Connecting Line (Hidden on Mobile) */}
-          <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-slate-200 border-t-2 border-dashed border-slate-300 z-0"></div>
-
-          {steps.map((step, index) => (
-            <motion.div 
+        {/* Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+          {steps.map((step) => (
+            <div
               key={step.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.2 }}
-              className="relative z-10"
+              className="relative flex flex-col items-start p-8 bg-slate-50 rounded-2xl border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/50 group overflow-hidden"
             >
-              {/* Card Container */}
-              <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 h-full hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group cursor-default">
-                
-                {/* Icon Circle */}
-                <div className={`w-16 h-16 rounded-2xl ${step.color} flex items-center justify-center mb-6 mx-auto shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                  <step.icon className="w-8 h-8" />
-                </div>
+              {/* Step Number Background Watermark */}
+              <span className="absolute top-4 right-6 text-7xl font-extrabold text-slate-200/50 transition-colors duration-300 group-hover:text-orange-500/10 z-0 select-none">
+                0{step.id}
+              </span>
 
-                {/* Step Number Badge */}
-                <div className="absolute top-6 right-6 w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                  {step.id}
-                </div>
-
-                <h3 className="text-xl font-bold text-slate-900 mb-3 text-center">
-                  {step.title}
-                </h3>
-                <p className="text-slate-600 text-center leading-relaxed">
-                  {step.desc}
-                </p>
-
-                {/* Mobile Arrow (Visual cue for flow) */}
-                <div className="md:hidden mt-6 flex justify-center text-slate-300">
-                  {index < steps.length - 1 && <ArrowRight className="w-6 h-6 animate-bounce" />}
-                </div>
+              {/* Icon Container */}
+              <div className="w-14 h-14 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center mb-8 relative z-10 group-hover:border-orange-200 transition-colors duration-300">
+                {step.icon}
               </div>
-            </motion.div>
-          ))}
-        </div>
 
-        {/* Bottom CTA */}
-        <div className="mt-16 text-center">
-          <button className="inline-flex items-center text-orange-600 font-semibold hover:text-orange-700 hover:underline">
-            Read our full documentation <ArrowRight className="w-4 h-4 ml-1" />
-          </button>
+              {/* Text Content */}
+              <h4 className="text-xl font-semibold text-slate-900 mb-3 relative z-10">
+                {step.title}
+              </h4>
+              <p className="text-slate-600 leading-relaxed relative z-10 font-light">
+                {step.description}
+              </p>
+            </div>
+          ))}
         </div>
 
       </div>
