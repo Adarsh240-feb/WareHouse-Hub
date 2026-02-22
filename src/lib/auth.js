@@ -5,7 +5,7 @@
  * for user registration, login, logout, and password reset.
  */
 
-import { 
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -42,18 +42,18 @@ const validatePassword = (password) => {
   if (password.length < 8) {
     return { isValid: true, message: 'Password is weak. Consider using 8+ characters with numbers and symbols' };
   }
-  
+
   const hasNumber = /\d/.test(password);
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
   const hasUpper = /[A-Z]/.test(password);
   const hasLower = /[a-z]/.test(password);
-  
+
   if (hasNumber && hasSpecial && hasUpper && hasLower) {
     return { isValid: true, message: 'Strong password' };
   } else if ((hasNumber || hasSpecial) && (hasUpper || hasLower)) {
     return { isValid: true, message: 'Moderate password strength' };
   }
-  
+
   return { isValid: true, message: 'Password is weak. Consider adding numbers, symbols, and mixed case' };
 };
 
@@ -101,16 +101,16 @@ export const registerUser = async (email, password, name, userType, company = ''
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', email));
       const querySnapshot = await getDocs(q);
-      
+
       if (!querySnapshot.empty) {
         const existingUserData = querySnapshot.docs[0].data();
         const existingUserType = existingUserData.userType;
-        
+
         if (existingUserType !== userType) {
           throw new Error(`This email is already registered as ${existingUserType}. Please sign in as ${existingUserType} or use a different email.`);
         }
       }
-      
+
       throw new Error('This email is already registered. Please sign in instead.');
     }
 
@@ -179,15 +179,20 @@ export const loginUser = async (email, password, userType) => {
 
     // Fetch additional user data from Firestore
     const userDoc = await getDoc(doc(db, 'users', user.uid));
-    
+
     if (userDoc.exists()) {
       const userData = userDoc.data();
-      
+
       // Validate userType matches selected type
+      // IMPORTANT: sign out FIRST before throwing, otherwise Firebase auth state
+      // is already set and AuthContext will redirect to the wrong portal.
       if (userData.userType !== userType) {
-        throw new Error(`This account is registered as ${userData.userType}. Please select the correct account type.`);
+        const errMsg = 'User already registered';
+        if (typeof window !== 'undefined') sessionStorage.setItem('authMismatchError', errMsg);
+        await signOut(auth);
+        throw new Error(errMsg);
       }
-      
+
       return {
         uid: user.uid,
         email: user.email,
@@ -239,9 +244,14 @@ export const loginWithGoogle = async (userType) => {
       });
     } else {
       // User exists - validate userType matches
+      // IMPORTANT: sign out FIRST before throwing, otherwise Firebase auth state
+      // is already set and AuthContext will redirect to the wrong portal.
       const existingUserData = userDoc.data();
       if (existingUserData.userType !== userType) {
-        throw new Error(`This account is registered as ${existingUserData.userType}. Please select the correct account type.`);
+        const errMsg = 'User already registered';
+        if (typeof window !== 'undefined') sessionStorage.setItem('authMismatchError', errMsg);
+        await signOut(auth);
+        throw new Error(errMsg);
       }
     }
 
@@ -333,7 +343,7 @@ export const updateUserProfile = async (uid, updates) => {
     }
 
     const userData = userDoc.data();
-    
+
     // Check if name has been changed before (only allow one name change)
     if (updates.name && updates.name !== userData.name) {
       if (userData.nameChanged) {
@@ -393,7 +403,7 @@ export const uploadProfileImage = async (uid, file) => {
     const fileName = `${Date.now()}_${file.name}`;
     const storagePath = `profile-images/${uid}/${fileName}`;
     const storageRef = ref(storage, storagePath);
-    
+
     console.log('📍 Storage path:', storagePath);
 
     // Upload the file with metadata
@@ -405,7 +415,7 @@ export const uploadProfileImage = async (uid, file) => {
         uploadedAt: new Date().toISOString()
       }
     };
-    
+
     const uploadResult = await uploadBytes(storageRef, file, metadata);
     console.log('✅ Upload complete:', uploadResult.metadata.fullPath);
 
@@ -437,7 +447,7 @@ export const uploadProfileImage = async (uid, file) => {
     console.error('❌ Error uploading profile image:', error);
     console.error('Error code:', error.code);
     console.error('Error message:', error.message);
-    
+
     // Provide more helpful error messages
     if (error.code === 'storage/unauthorized') {
       throw new Error('Permission denied. Please check Firebase Storage rules.');
@@ -477,7 +487,7 @@ export const sendVerificationEmail = async () => {
     };
 
     await sendEmailVerification(user, actionCodeSettings);
-    
+
     // Log success for debugging
     console.log('✅ Verification email sent to:', user.email);
   } catch (error) {
@@ -501,7 +511,7 @@ export const refreshEmailVerification = async () => {
 
     // Reload user data from Firebase
     await user.reload();
-    
+
     // Update Firestore if email is now verified
     if (user.emailVerified) {
       await updateDoc(doc(db, 'users', user.uid), {
@@ -529,7 +539,7 @@ const handleAuthError = (error) => {
   }
 
   let message = 'An error occurred. Please try again.';
-  
+
   switch (error.code) {
     case 'auth/email-already-in-use':
       message = 'This email is already registered. Please sign in instead or use the "Forgot password" option.';
@@ -576,7 +586,7 @@ const handleAuthError = (error) => {
     default:
       message = error.message || 'An unexpected error occurred. Please try again.';
   }
-  
+
   const err = new Error(message);
   err.code = error.code;
   return err;

@@ -37,18 +37,18 @@ export default function Login({ onLoginSuccess }) {
     if (password.length < 8) {
       return { level: 'weak', message: 'Weak - Add more characters', color: 'text-orange-600' }
     }
-    
+
     const hasNumber = /\d/.test(password)
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password)
     const hasUpper = /[A-Z]/.test(password)
     const hasLower = /[a-z]/.test(password)
-    
+
     if (hasNumber && hasSpecial && hasUpper && hasLower) {
       return { level: 'strong', message: 'Strong password ✓', color: 'text-green-600' }
     } else if ((hasNumber || hasSpecial) && (hasUpper || hasLower)) {
       return { level: 'medium', message: 'Moderate - Add symbols/numbers', color: 'text-yellow-600' }
     }
-    
+
     return { level: 'weak', message: 'Weak - Add numbers & symbols', color: 'text-orange-600' }
   }
 
@@ -78,12 +78,25 @@ export default function Login({ onLoginSuccess }) {
     }
   }, [isLogin])
 
+  // On mount: pick up any mismatch error persisted in sessionStorage before a signOut-triggered remount
+  useEffect(() => {
+    const storedError = sessionStorage.getItem('authMismatchError')
+    if (storedError) {
+      setError(storedError)
+      sessionStorage.removeItem('authMismatchError')
+      // Page remounts at top after signOut re-render cycle — scroll to login so error is visible
+      setTimeout(() => {
+        document.getElementById('login')?.scrollIntoView({ behavior: 'smooth' })
+      }, 150)
+    }
+  }, [])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSuccessMessage('')
     setLoading(true)
-    
+
     try {
       if (isLogin) {
         // Login with Firebase
@@ -96,7 +109,7 @@ export default function Login({ onLoginSuccess }) {
           setLoading(false)
           return
         }
-        
+
         const user = await registerUser(
           formData.email,
           formData.password,
@@ -117,7 +130,7 @@ export default function Login({ onLoginSuccess }) {
     setError('')
     setSuccessMessage('')
     setLoading(true)
-    
+
     try {
       const user = await loginWithGoogle(userType)
       onLoginSuccess(user)
@@ -196,8 +209,8 @@ export default function Login({ onLoginSuccess }) {
             {isLogin ? 'Welcome Back' : 'Create Your Account'}
           </h2>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            {isLogin 
-              ? 'Sign in to access your warehouse management dashboard' 
+            {isLogin
+              ? 'Sign in to access your warehouse management dashboard'
               : 'Join thousands of businesses optimizing their warehouse operations'}
           </p>
         </motion.div>
@@ -205,7 +218,7 @@ export default function Login({ onLoginSuccess }) {
         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative">
           {/* Partition line between sections */}
           <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-slate-300 to-transparent transform -translate-x-1/2"></div>
-          
+
           {/* Left side - Benefits */}
           <motion.div
             variants={containerVariants}
@@ -271,22 +284,20 @@ export default function Login({ onLoginSuccess }) {
                   <button
                     type="button"
                     onClick={() => setUserType('merchant')}
-                    className={`py-3 px-4 rounded-lg font-semibold transition-all duration-300 border-2 ${
-                      userType === 'merchant'
-                        ? 'bg-primary-50 border-primary-600 text-primary-600'
-                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                    }`}
+                    className={`py-3 px-4 rounded-lg font-semibold transition-all duration-300 border-2 ${userType === 'merchant'
+                      ? 'bg-primary-50 border-primary-600 text-primary-600'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
                   >
                     🏢 Merchant
                   </button>
                   <button
                     type="button"
                     onClick={() => setUserType('owner')}
-                    className={`py-3 px-4 rounded-lg font-semibold transition-all duration-300 border-2 ${
-                      userType === 'owner'
-                        ? 'bg-primary-50 border-primary-600 text-primary-600'
-                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                    }`}
+                    className={`py-3 px-4 rounded-lg font-semibold transition-all duration-300 border-2 ${userType === 'owner'
+                      ? 'bg-primary-50 border-primary-600 text-primary-600'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
                   >
                     🏭 Owner
                   </button>
@@ -301,22 +312,20 @@ export default function Login({ onLoginSuccess }) {
                 <button
                   type="button"
                   onClick={() => setIsLogin(true)}
-                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                    isLogin 
-                      ? 'bg-white text-primary-600 shadow-md' 
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-300 ${isLogin
+                    ? 'bg-white text-primary-600 shadow-md'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
                   Sign In
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsLogin(false)}
-                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                    !isLogin 
-                      ? 'bg-white text-primary-600 shadow-md' 
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-300 ${!isLogin
+                    ? 'bg-white text-primary-600 shadow-md'
+                    : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
                   Sign Up
                 </button>
@@ -343,8 +352,8 @@ export default function Login({ onLoginSuccess }) {
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-300"
                         placeholder="John Doe"
                         whileFocus={{ scale: 1.01 }}
-                        animate={{ 
-                          borderColor: focused.name ? 'rgb(249, 115, 22)' : 'rgb(203, 213, 225)' 
+                        animate={{
+                          borderColor: focused.name ? 'rgb(249, 115, 22)' : 'rgb(203, 213, 225)'
                         }}
                       />
                     </motion.div>
@@ -367,8 +376,8 @@ export default function Login({ onLoginSuccess }) {
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all duration-300"
                         placeholder="Your Company"
                         whileFocus={{ scale: 1.01 }}
-                        animate={{ 
-                          borderColor: focused.company ? 'rgb(249, 115, 22)' : 'rgb(203, 213, 225)' 
+                        animate={{
+                          borderColor: focused.company ? 'rgb(249, 115, 22)' : 'rgb(203, 213, 225)'
                         }}
                       />
                     </motion.div>
@@ -390,8 +399,8 @@ export default function Login({ onLoginSuccess }) {
                     placeholder="you@company.com"
                     required
                     whileFocus={{ scale: 1.01 }}
-                    animate={{ 
-                      borderColor: focused.email ? 'rgb(249, 115, 22)' : (!emailValid ? 'rgb(248, 113, 113)' : 'rgb(203, 213, 225)') 
+                    animate={{
+                      borderColor: focused.email ? 'rgb(249, 115, 22)' : (!emailValid ? 'rgb(248, 113, 113)' : 'rgb(203, 213, 225)')
                     }}
                   />
                   {!emailValid && formData.email && (
@@ -421,8 +430,8 @@ export default function Login({ onLoginSuccess }) {
                       placeholder="••••••••"
                       required
                       whileFocus={{ scale: 1.01 }}
-                      animate={{ 
-                        borderColor: focused.password ? 'rgb(249, 115, 22)' : 'rgb(203, 213, 225)' 
+                      animate={{
+                        borderColor: focused.password ? 'rgb(249, 115, 22)' : 'rgb(203, 213, 225)'
                       }}
                     />
                     <button
@@ -462,7 +471,7 @@ export default function Login({ onLoginSuccess }) {
                       <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
                       <span className="text-slate-600">Remember me</span>
                     </label>
-                    <button 
+                    <button
                       type="button"
                       onClick={handleForgotPassword}
                       className="text-primary-600 hover:text-primary-700 font-medium"
@@ -474,7 +483,7 @@ export default function Login({ onLoginSuccess }) {
                 )}
 
                 {error && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"
@@ -484,7 +493,7 @@ export default function Login({ onLoginSuccess }) {
                 )}
 
                 {successMessage && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm"
@@ -534,10 +543,10 @@ export default function Login({ onLoginSuccess }) {
                 whileTap={{ scale: loading ? 1 : 0.99 }}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
                 Sign {isLogin ? 'in' : 'up'} with Google
               </motion.button>
