@@ -12,8 +12,9 @@ import {
     LayoutDashboard, Warehouse, CheckCircle2, XCircle, Clock,
     LogOut, Search, RefreshCw, ChevronDown, ChevronUp,
     MapPin, Shield, AlertTriangle, X, Wifi, WifiOff,
-    Settings, Package, Building2, Tag, Loader2,
+    Settings, Package, Building2, Tag, Loader2, Database,
 } from 'lucide-react';
+import { migrateWarehouseFields } from '@/lib/migrateFields';
 
 // ─────────────────────────────────────────────────────────────────────
 // Sidebar
@@ -44,8 +45,8 @@ function AdminSidebar({ activeView, setActiveView, user, onLogout, pendingCount 
                         key={item.id}
                         onClick={() => setActiveView(item.id)}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeView === item.id
-                                ? 'bg-orange-50 text-orange-700 shadow-sm'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            ? 'bg-orange-50 text-orange-700 shadow-sm'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                             }`}
                     >
                         <item.icon className={`w-5 h-5 ${activeView === item.id ? 'text-orange-600' : 'text-slate-400'}`} />
@@ -321,6 +322,22 @@ export default function AdminDashboard({ user, onLogout }) {
 // ─────────────────────────────────────────────────────────────────────
 function OverviewView({ counts, warehouses }) {
     const recentPending = warehouses.filter(w => w.status === 'pending').slice(0, 5);
+    const [migrating, setMigrating] = useState(false);
+    const [migrateResult, setMigrateResult] = useState(null);
+
+    const handleMigrate = async () => {
+        setMigrating(true);
+        setMigrateResult(null);
+        try {
+            const result = await migrateWarehouseFields();
+            setMigrateResult(result);
+        } catch (err) {
+            console.error('Migration error:', err);
+            setMigrateResult({ error: err.message });
+        } finally {
+            setMigrating(false);
+        }
+    };
 
     const stats = [
         { label: 'Total Listings', value: counts.all, icon: '🏭', color: 'blue' },
@@ -386,6 +403,38 @@ function OverviewView({ counts, warehouses }) {
                     <p className="text-slate-400 text-sm mt-1">No warehouses pending review.</p>
                 </div>
             )}
+
+            {/* Data Migration Tool */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-3">
+                    <Database className="w-5 h-5 text-slate-500" />
+                    <h2 className="text-lg font-bold text-slate-900">Data Migration</h2>
+                </div>
+                <p className="text-sm text-slate-500 mb-4">
+                    Updates old warehouse documents to use the latest field names (e.g. pricingModel → pricingUnit). Safe to run multiple times.
+                </p>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleMigrate}
+                        disabled={migrating}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        {migrating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                        {migrating ? 'Migrating…' : 'Run Migration'}
+                    </button>
+                    {migrateResult && !migrateResult.error && (
+                        <span className="text-sm text-emerald-600 font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-4 h-4" />
+                            {migrateResult.migrated} of {migrateResult.total} documents updated
+                        </span>
+                    )}
+                    {migrateResult?.error && (
+                        <span className="text-sm text-red-600 font-semibold">
+                            Error: {migrateResult.error}
+                        </span>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
@@ -416,8 +465,8 @@ function WarehouseListView({
                             key={tab.key}
                             onClick={() => setFilter(tab.key)}
                             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${filter === tab.key
-                                    ? 'bg-orange-600 text-white shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                                ? 'bg-orange-600 text-white shadow-sm'
+                                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                         >
                             {tab.label}
@@ -621,7 +670,7 @@ function WarehouseRow({ warehouse: w, handleAction, actionLoading, isExpanded, o
                                 ['Security', w.securityFeatures?.join(', ')],
                             ]} />
                             <DetailGroup title="Pricing & Contact" items={[
-                                ['Pricing Model', w.pricingModel],
+                                ['Pricing Unit', w.pricingUnit || w.pricingModel],
                                 ['Storage Rate', w.storageRate ? `₹${w.storageRate}` : null],
                                 ['Min Commitment', w.minCommitment],
                                 ['Mobile', w.mobile],

@@ -23,16 +23,16 @@ const WAREHOUSE_AGES = ['0-3 years', '3-7 years', '7+ years'];
 
 const DAYS_OF_OPERATION = ['Mon-Fri', 'Mon-Sat', 'All 7 Days'];
 const OPERATION_TIMES = ['24x7', 'Fixed Hours', 'Other'];
-const SECURITY_FEATURES = ['CCTV', 'Fire Safety System', 'Security Guard'];
+const SECURITY_FEATURES = ['CCTV', 'Fire Safety System', 'Security Guard', 'Others'];
 const SUITABLE_GOODS = ['FMCG', 'Pharma', 'Chemicals', 'Food', 'Automobile', 'Metals', 'Others'];
 const VALUE_ADDED_SERVICES = [
   'Pick & Pack', 'Kitting / Assembly', 'Labelling / Barcoding',
   'Repacking', 'Quality Inspection', 'E-commerce Fulfillment',
-  'Cross Docking', 'Transportation Support',
+  'Cross Docking', 'Transportation Support', 'Others',
 ];
 
 // Step 3 – Pricing
-const PRICING_MODELS = ['Per sq ft', 'Per pallet', 'Per CBM', 'Per SKU', 'Custom'];
+const PRICING_UNITS = ['Per sq ft', 'Per pallet', 'Per CBM', 'Per SKU', 'Custom'];
 const MIN_COMMITMENT_OPTIONS = ['No Minimum', '1 Month', '3 Months', '6 Months', '12 Months'];
 const SHORT_TERM_OPTIONS = ['Yes (1-3 months)', 'Yes (3-6 months)', 'No (Only Long-Term)'];
 
@@ -84,13 +84,17 @@ export default function AddWarehouse({ setActiveTab }) {
     operationTime: '',
     customOperationTime: '',
     securityFeatures: [],
+    customSecurityFeature: '',
     suitableGoods: [],
+    customSuitableGood: '',
     valueAddedServices: [],
+    customValueAddedService: '',
   });
 
   // ── Step 3: Pricing & Photos ─────────────────────────────
   const [pricingDetails, setPricingDetails] = useState({
-    pricingModel: '',
+    pricingUnit: '',
+    customPricingUnit: '',
     storageRate: '',
     handlingRate: '',
     minCommitment: '',
@@ -239,7 +243,8 @@ export default function AddWarehouse({ setActiveTab }) {
 
   const validateStep4 = () => {
     const e = {};
-    if (!pricingDetails.pricingModel) e.pricingModel = 'Please select a pricing model';
+    if (!pricingDetails.pricingUnit) e.pricingUnit = 'Please select a pricing unit';
+    if (pricingDetails.pricingUnit === 'Custom' && !pricingDetails.customPricingUnit.trim()) e.customPricingUnit = 'Please specify your custom pricing unit';
     if (!pricingDetails.storageRate) e.storageRate = 'Storage rate is required';
     if (!pricingDetails.minCommitment) e.minCommitment = 'Please select minimum commitment';
     if (!pricingDetails.shortTermStorage) e.shortTermStorage = 'Please select short-term storage option';
@@ -384,12 +389,23 @@ export default function AddWarehouse({ setActiveTab }) {
         operationTime: operationsDetails.operationTime === 'Other'
           ? operationsDetails.customOperationTime.trim()
           : operationsDetails.operationTime,
-        securityFeatures: operationsDetails.securityFeatures,
-        suitableGoods: operationsDetails.suitableGoods,
-        valueAddedServices: operationsDetails.valueAddedServices,
+        securityFeatures: operationsDetails.securityFeatures.map(f =>
+          f === 'Others' && operationsDetails.customSecurityFeature.trim()
+            ? operationsDetails.customSecurityFeature.trim() : f
+        ),
+        suitableGoods: operationsDetails.suitableGoods.map(g =>
+          g === 'Others' && operationsDetails.customSuitableGood.trim()
+            ? operationsDetails.customSuitableGood.trim() : g
+        ),
+        valueAddedServices: operationsDetails.valueAddedServices.map(s =>
+          s === 'Others' && operationsDetails.customValueAddedService.trim()
+            ? operationsDetails.customValueAddedService.trim() : s
+        ),
 
         // ── Step 3: Pricing & Photos ───────────────────────
-        pricingModel: pricingDetails.pricingModel,
+        pricingUnit: pricingDetails.pricingUnit === 'Custom'
+          ? pricingDetails.customPricingUnit.trim()
+          : pricingDetails.pricingUnit,
         storageRate: Number(pricingDetails.storageRate),
         handlingRate: pricingDetails.handlingRate ? Number(pricingDetails.handlingRate) : null,
         minCommitment: pricingDetails.minCommitment,
@@ -732,18 +748,36 @@ export default function AddWarehouse({ setActiveTab }) {
               </div>
 
               <div className="mt-6 space-y-6">
-                <MultiChips
-                  label="Security Features" id="securityFeatures" options={SECURITY_FEATURES} mandatory
-                  selected={operationsDetails.securityFeatures}
-                  onToggle={item => toggleItem('securityFeatures', item, setOperationsDetails)}
-                  errors={errors}
-                />
-                <MultiChips
-                  label="Suitable Goods" id="suitableGoods" options={SUITABLE_GOODS} mandatory
-                  selected={operationsDetails.suitableGoods}
-                  onToggle={item => toggleItem('suitableGoods', item, setOperationsDetails)}
-                  errors={errors}
-                />
+                <div>
+                  <MultiChips
+                    label="Security Features" id="securityFeatures" options={SECURITY_FEATURES} mandatory
+                    selected={operationsDetails.securityFeatures}
+                    onToggle={item => toggleItem('securityFeatures', item, setOperationsDetails)}
+                    errors={errors}
+                  />
+                  {operationsDetails.securityFeatures.includes('Others') && (
+                    <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200 max-w-md">
+                      <Field label="Specify Other Security Feature" id="customSecurityFeature" placeholder="e.g. Biometric Access"
+                        value={operationsDetails.customSecurityFeature || ''}
+                        onChange={v => handleOperationsChange('customSecurityFeature', v)} mandatory errors={errors} />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <MultiChips
+                    label="Suitable Goods" id="suitableGoods" options={SUITABLE_GOODS} mandatory
+                    selected={operationsDetails.suitableGoods}
+                    onToggle={item => toggleItem('suitableGoods', item, setOperationsDetails)}
+                    errors={errors}
+                  />
+                  {operationsDetails.suitableGoods.includes('Others') && (
+                    <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200 max-w-md">
+                      <Field label="Specify Other Goods" id="customSuitableGood" placeholder="e.g. Textiles, Electronics"
+                        value={operationsDetails.customSuitableGood || ''}
+                        onChange={v => handleOperationsChange('customSuitableGood', v)} mandatory errors={errors} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -768,6 +802,13 @@ export default function AddWarehouse({ setActiveTab }) {
                   );
                 })}
               </div>
+              {operationsDetails.valueAddedServices.includes('Others') && (
+                <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200 max-w-md">
+                  <Field label="Specify Other Service" id="customValueAddedService" placeholder="e.g. Returns Processing"
+                    value={operationsDetails.customValueAddedService || ''}
+                    onChange={v => handleOperationsChange('customValueAddedService', v)} mandatory errors={errors} />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -782,9 +823,22 @@ export default function AddWarehouse({ setActiveTab }) {
             <div>
               <SectionHeading icon={<DollarSign className="w-5 h-5 text-orange-600" />} title="Pricing Details" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SelectField label="Pricing Model" id="pricingModel" options={PRICING_MODELS}
-                  placeholder="Select model" value={pricingDetails.pricingModel}
-                  onChange={v => handlePricingChange('pricingModel', v)} mandatory errors={errors} />
+                <div className="flex flex-col gap-4">
+                  <SelectField label="Pricing Unit" id="pricingUnit" options={PRICING_UNITS}
+                    placeholder="Select unit" value={pricingDetails.pricingUnit}
+                    onChange={v => {
+                      handlePricingChange('pricingUnit', v);
+                      if (v !== 'Custom') handlePricingChange('customPricingUnit', '');
+                    }} mandatory errors={errors} />
+
+                  {pricingDetails.pricingUnit === 'Custom' && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                      <Field label="Specify Custom Unit" id="customPricingUnit" placeholder="e.g. Per container, Per rack"
+                        value={pricingDetails.customPricingUnit || ''}
+                        onChange={v => handlePricingChange('customPricingUnit', v)} mandatory errors={errors} />
+                    </div>
+                  )}
+                </div>
 
                 <Field label="Storage Rate (₹)" id="storageRate" type="number"
                   placeholder="Approximate value allowed"

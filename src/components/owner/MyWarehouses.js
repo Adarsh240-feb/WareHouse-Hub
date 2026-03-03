@@ -307,14 +307,14 @@ function WarehouseCard({ warehouse: w }) {
         )}
 
         {/* Pricing */}
-        {(w.pricingModel || w.storageRate) && (
+        {(w.pricingUnit || w.pricingModel || w.storageRate) && (
           <div className="flex items-center gap-2 mb-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
             <Tag className="w-4 h-4 text-slate-500 shrink-0" />
             <div>
               <p className="text-xs text-slate-400 font-medium">Pricing</p>
               <p className="text-sm font-bold text-slate-800">
                 {w.storageRate ? `₹${w.storageRate.toLocaleString()}` : ''}
-                {w.pricingModel ? ` / ${w.pricingModel}` : ''}
+                {(w.pricingUnit || w.pricingModel) ? ` / ${w.pricingUnit || w.pricingModel}` : ''}
               </p>
             </div>
           </div>

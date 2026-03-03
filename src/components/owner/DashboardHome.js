@@ -190,9 +190,9 @@ export default function DashboardHome({ setActiveTab, user }) {
                     )}
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-slate-500">{w.totalArea?.toLocaleString('en-IN')} sq ft</span>
-                      {w.pricingModel && (
+                      {(w.pricingUnit || w.pricingModel) && (
                         <span className="text-xs text-slate-400 flex items-center gap-0.5">
-                          <Tag className="w-3 h-3" /> {w.pricingModel}
+                          <Tag className="w-3 h-3" /> {w.pricingUnit || w.pricingModel}
                         </span>
                       )}
                     </div>
@@ -200,8 +200,8 @@ export default function DashboardHome({ setActiveTab, user }) {
 
                   {/* Status */}
                   <span className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full border ${w.status === 'active'
-                      ? 'bg-green-50 border-green-200 text-green-700'
-                      : 'bg-slate-50 border-slate-200 text-slate-500'
+                    ? 'bg-green-50 border-green-200 text-green-700'
+                    : 'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
                     {w.status === 'active' ? '● Live' : '○ Draft'}
                   </span>
@@ -265,16 +265,16 @@ export default function DashboardHome({ setActiveTab, user }) {
                 );
               })}
 
-              {/* Pricing models */}
+              {/* Pricing units */}
               <div className="pt-1">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Pricing Models Used</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Pricing Units Used</p>
                 <div className="flex flex-wrap gap-2">
-                  {[...new Set(warehouses.map(w => w.pricingModel).filter(Boolean))].map(m => (
+                  {[...new Set(warehouses.map(w => w.pricingUnit || w.pricingModel).filter(Boolean))].map(m => (
                     <span key={m} className="px-2.5 py-1 bg-orange-50 text-orange-700 border border-orange-100 rounded-full text-xs font-semibold">
                       {m}
                     </span>
                   ))}
-                  {warehouses.every(w => !w.pricingModel) && (
+                  {warehouses.every(w => !w.pricingUnit && !w.pricingModel) && (
                     <span className="text-xs text-slate-400">No pricing set</span>
                   )}
                 </div>
