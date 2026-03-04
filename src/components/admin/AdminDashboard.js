@@ -98,11 +98,21 @@ export default function AdminDashboard({ user, onLogout }) {
     const [actionLoading, setActionLoading] = useState({});
     const [toast, setToast] = useState(null);
     const [expandedRow, setExpandedRow] = useState(null);
-    const [activeView, setActiveView] = useState('warehouses');
+    const [activeView, setActiveView] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('admin_activeView') || 'warehouses';
+        }
+        return 'warehouses';
+    });
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => { setMounted(true); }, []);
+
+    // Persist activeView to sessionStorage so it survives page reloads
+    useEffect(() => {
+        sessionStorage.setItem('admin_activeView', activeView);
+    }, [activeView]);
 
     // Real-time Firestore subscription
     useEffect(() => {

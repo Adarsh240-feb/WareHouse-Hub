@@ -30,14 +30,15 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 // Auth — session-scoped so each tab is independent
 export const auth = getAuth(app);
 
-// Set persistence to sessionStorage (runs once per tab on module load)
-// We call it but intentionally do NOT await — the auth module queues
-// any sign-in calls until persistence is resolved, so this is safe.
-if (typeof window !== 'undefined') {
-  setPersistence(auth, browserSessionPersistence).catch(err =>
+// Set persistence to sessionStorage (runs once per tab on module load).
+// We export the promise so that AuthContext can await it BEFORE subscribing
+// to onAuthStateChanged — otherwise the listener can fire before the
+// session token is loaded, causing an intermittent redirect to the landing page.
+export const persistenceReady = typeof window !== 'undefined'
+  ? setPersistence(auth, browserSessionPersistence).catch(err =>
     console.warn('Firebase: failed to set session persistence', err)
-  );
-}
+  )
+  : Promise.resolve();
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
