@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
+import { apiLimiter, rateLimitResponse } from '@/lib/rateLimit';
 
-const SKIP = ['/api/', '/admin/', '/_next/', '/favicon', '/robots'];
+const SKIP = ['/admin/', '/_next/', '/favicon', '/robots'];
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
+
+  // ── Rate limit all /api/ routes at the middleware level ──
+  if (pathname.startsWith('/api/')) {
+    const { success } = apiLimiter.check(request, 10);
+    if (!success) {
+      return rateLimitResponse(60);
+    }
+    return NextResponse.next();
+  }
 
   if (SKIP.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
@@ -48,4 +58,3 @@ export function middleware(request) {
 }
 
 export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'] };
-

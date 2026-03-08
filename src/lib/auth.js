@@ -20,6 +20,31 @@ import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, whe
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from './firebase';
 
+// ─── Client-side auth rate limiting ─────────────────────────────────────────
+// Prevents brute-force attacks by limiting attempts per time window.
+// Uses a simple sliding-window counter stored in memory.
+const AUTH_RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const AUTH_RATE_LIMIT_MAX = 5;      // max attempts per window
+const RESET_RATE_LIMIT_MAX = 3;      // max password resets per window
+
+const authAttempts = [];               // timestamps of auth attempts
+const resetAttempts = [];              // timestamps of password reset attempts
+
+function checkAuthRateLimit(attempts, maxAttempts) {
+  const now = Date.now();
+  // Remove expired timestamps
+  while (attempts.length > 0 && now - attempts[0] > AUTH_RATE_LIMIT_WINDOW) {
+    attempts.shift();
+  }
+  if (attempts.length >= maxAttempts) {
+    const waitSeconds = Math.ceil((AUTH_RATE_LIMIT_WINDOW - (now - attempts[0])) / 1000);
+    throw new Error(
+      `Too many attempts. Please wait ${waitSeconds} second${waitSeconds !== 1 ? 's' : ''} before trying again.`
+    );
+  }
+  attempts.push(now);
+}
+
 /**
  * Flag set to true while loginUser / loginWithGoogle is executing.
  * AuthContext checks this to avoid reacting to intermediate auth-state
@@ -90,6 +115,9 @@ export const checkEmailExists = async (email) => {
  * @returns {Promise<Object>} User data with userType
  */
 export const registerUser = async (email, password, name, userType, company = '') => {
+  // Rate-limit registration attempts
+  checkAuthRateLimit(authAttempts, AUTH_RATE_LIMIT_MAX);
+
   try {
     // Validate email format
     if (!isValidEmail(email)) {
@@ -171,6 +199,9 @@ export const registerUser = async (email, password, name, userType, company = ''
  * @returns {Promise<Object>} User data with userType
  */
 export const loginUser = async (email, password, userType) => {
+  // Rate-limit login attempts
+  checkAuthRateLimit(authAttempts, AUTH_RATE_LIMIT_MAX);
+
   loginFlowActive = true;
   try {
     // Validate email format
@@ -254,6 +285,9 @@ export const loginUser = async (email, password, userType) => {
  * @returns {Promise<Object>} User data
  */
 export const loginWithGoogle = async (userType, isSignIn = false) => {
+  // Rate-limit Google sign-in attempts
+  checkAuthRateLimit(authAttempts, AUTH_RATE_LIMIT_MAX);
+
   loginFlowActive = true;
   try {
     const provider = new GoogleAuthProvider();
@@ -367,6 +401,9 @@ export const logoutUser = async () => {
  * @returns {Promise<void>}
  */
 export const resetPassword = async (email) => {
+  // Rate-limit password reset requests (stricter limit)
+  checkAuthRateLimit(resetAttempts, RESET_RATE_LIMIT_MAX);
+
   try {
     await sendPasswordResetEmail(auth, email);
   } catch (error) {
