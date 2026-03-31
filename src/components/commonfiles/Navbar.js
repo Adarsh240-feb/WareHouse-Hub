@@ -2,12 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useSpring } from 'framer-motion'
+import { usePathname, useRouter } from 'next/navigation'
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // FIXED: Added the missing state variable
   const [scrolled, setScrolled] = useState(false);
+
+  const pathname = usePathname();
+  const router = useRouter();
+  
+  // Always use solid styling on non-home pages
+  const isHome = pathname === '/';
+  const navScrolled = !isHome || scrolled;
 
   const { scrollYProgress } = useScroll()
   const scaleX = useSpring(scrollYProgress, {
@@ -31,10 +37,22 @@ export default function Navbar() {
   ]
 
   // Smooth scroll handler for anchor links
-  const handleNavClick = (e, href) => {
-    if (href.startsWith('#')) {
-      e.preventDefault();
-      const id = href.replace('#', '');
+  const handleNavClick = (e, targetHash) => {
+    e.preventDefault();
+    if (!isHome) {
+      router.push('/' + targetHash);
+      setMobileMenuOpen(false);
+      return;
+    }
+    
+    if (targetHash === '#') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setMobileMenuOpen(false);
+      return;
+    }
+
+    if (targetHash.startsWith('#')) {
+      const id = targetHash.replace('#', '');
       const el = document.getElementById(id);
       if (el) {
         const yOffset = -72; // adjust for sticky navbar height
@@ -58,7 +76,7 @@ export default function Navbar() {
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 100, damping: 20 }}
         // UPGRADE: Dynamic transparent-to-solid frosted glass effect
-        className={`fixed w-full top-0 z-50 transition-all duration-300 border-b ${scrolled
+        className={`fixed w-full top-0 z-50 transition-all duration-300 border-b ${navScrolled
           ? 'bg-white/90 backdrop-blur-xl border-slate-200 shadow-sm py-0'
           : 'bg-transparent border-transparent py-2'
           }`}
@@ -68,9 +86,10 @@ export default function Navbar() {
           {/* Desktop/Laptop Navbar */}
           <div className="hidden md:flex items-center justify-between h-20 w-full">
             <motion.a
-              href="#"
+              href="/"
+              onClick={(e) => handleNavClick(e, '#')}
               // UPGRADE: Text changes from white to dark when scrolling
-              className={`font-display font-bold text-xl flex items-center gap-2 group transition-colors duration-300 ${scrolled ? 'text-slate-900' : 'text-white'
+              className={`font-display font-bold text-xl flex items-center gap-2 group transition-colors duration-300 ${navScrolled ? 'text-slate-900' : 'text-white'
                 }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -89,10 +108,10 @@ export default function Navbar() {
               {navLinks.map((link, index) => (
                 <motion.a
                   key={link.label}
-                  href={link.href}
+                  href={`/${link.href}`}
                   onClick={e => handleNavClick(e, link.href)}
                   // UPGRADE: Link colors adapt to the background
-                  className={`font-medium transition-colors relative group cursor-pointer ${scrolled ? 'text-slate-600 hover:text-orange-500' : 'text-slate-200 hover:text-white'
+                  className={`font-medium transition-colors relative group cursor-pointer ${navScrolled ? 'text-slate-600 hover:text-orange-500' : 'text-slate-200 hover:text-white'
                     }`}
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -107,7 +126,8 @@ export default function Navbar() {
 
             <div className="flex items-center gap-3">
               <motion.a
-                href="#login"
+                href="/#login"
+                onClick={(e) => handleNavClick(e, '#login')}
                 className="px-6 py-2.5 bg-orange-500 text-white font-semibold rounded-full hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/25 relative overflow-hidden group"
                 whileHover={{ scale: 1.05, boxShadow: '0 20px 25px -5px rgba(249, 115, 22, 0.4)' }}
                 whileTap={{ scale: 0.95 }}
@@ -120,8 +140,9 @@ export default function Navbar() {
           {/* Mobile/Tablet Navbar */}
           <div className="flex md:hidden items-center justify-between h-16 w-full">
             <motion.a
-              href="#"
-              className={`font-display font-bold text-xl flex items-center gap-2 group ${scrolled ? 'text-slate-900' : 'text-white'
+              href="/"
+              onClick={(e) => handleNavClick(e, '#')}
+              className={`font-display font-bold text-xl flex items-center gap-2 group ${navScrolled ? 'text-slate-900' : 'text-white'
                 }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -139,7 +160,7 @@ export default function Navbar() {
             {/* Hamburger button */}
             <button
               onClick={() => setMobileMenuOpen(prev => !prev)}
-              className={`p-2 rounded-lg transition-colors ${scrolled ? 'text-slate-700 hover:bg-slate-100' : 'text-white hover:bg-white/10'}`}
+              className={`p-2 rounded-lg transition-colors ${navScrolled ? 'text-slate-700 hover:bg-slate-100' : 'text-white hover:bg-white/10'}`}
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
@@ -167,7 +188,7 @@ export default function Navbar() {
                 {navLinks.map((link) => (
                   <a
                     key={link.label}
-                    href={link.href}
+                    href={`/${link.href}`}
                     onClick={e => handleNavClick(e, link.href)}
                     className="py-3 text-base font-semibold text-slate-700 hover:text-orange-500 border-b border-slate-100 last:border-0 transition-colors"
                   >
@@ -175,8 +196,8 @@ export default function Navbar() {
                   </a>
                 ))}
                 <a
-                  href="#login"
-                  onClick={() => setMobileMenuOpen(false)}
+                  href="/#login"
+                  onClick={(e) => handleNavClick(e, '#login')}
                   className="mt-3 py-3 px-4 bg-orange-500 text-white font-semibold rounded-xl text-center hover:bg-orange-600 transition-colors"
                 >
                   Login / SignUp

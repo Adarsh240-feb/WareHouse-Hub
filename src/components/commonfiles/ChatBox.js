@@ -1,54 +1,96 @@
-'use client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
-import { conversations } from '@/data/warehouseData'
+import { db } from '@/lib/firebase'
+import { collection, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore'
+import { getOrCreateConversation, sendMessage } from '@/lib/messaging'
 
 export default function ChatBox({ warehouse, user, onClose }) {
+  const [conversation, setConversation] = useState(null)
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const messagesEndRef = useRef(null)
 
-  // Load existing conversation or create new
+  // Initialize/Fetch conversation and listen for messages
   useEffect(() => {
-    const existingChat = conversations.find(conv => 
-      conv.warehouseId === warehouse.id && 
-      (conv.merchantId === user.id || conv.ownerId === user.id)
-    )
-    
-    if (existingChat) {
-      setMessages(existingChat.messages)
-    } else {
-      // Start new conversation
-      setMessages([{
-        id: 'INTRO',
-        senderId: 'SYSTEM',
-        senderType: 'system',
-        message: `You're now connected with ${user.userType === 'merchant' ? warehouse.ownerName : user.name}. Start your conversation about ${warehouse.name}.`,
-        timestamp: new Date().toISOString(),
-        read: true
-      }])
+    let unsubscribe = () => {}
+
+    const initChat = async () => {
+      try {
+        // IMPORTANT: The merchantId is either the logged-in user (if they are a merchant)
+        // or the specific merchant who sent the inquiry (if the owner is viewing)
+        const merchantId = user.userType === 'owner' ? warehouse.merchantId : (user.id || user.uid);
+        
+        const conv = await getOrCreateConversation(
+          warehouse.id || warehouse.warehouseId, 
+          merchantId, 
+          warehouse.ownerId,
+          {
+            warehouseName: warehouse.warehouseName || warehouse.name,
+            merchantName: warehouse.merchantName || user.name || user.displayName || 'Merchant',
+            ownerName: warehouse.ownerName || warehouse.contactPerson || 'Owner',
+            totalArea: warehouse.totalArea || 0,
+            pricingAmount: warehouse.pricingAmount || 0,
+            city: warehouse.city || warehouse.location?.city || '',
+            category: warehouse.warehouseCategory || warehouse.category || ''
+          }
+        )
+        setConversation(conv)
+
+        // Listen for messages in real-time
+        const q = query(
+          collection(db, 'conversations', conv.id, 'messages'),
+          orderBy('timestamp', 'asc')
+        )
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const msgs = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().timestamp?.toDate().toISOString() || new Date().toISOString()
+          }))
+          
+          if (msgs.length === 0) {
+            setMessages([{
+              id: 'INTRO',
+              senderId: 'SYSTEM',
+              senderType: 'system',
+              message: `You're now connected with ${user.userType === 'merchant' ? warehouse.ownerName : 'the merchant'}. Start your conversation about ${warehouse.name}.`,
+              timestamp: new Date().toISOString(),
+              read: true
+            }])
+          } else {
+            setMessages(msgs)
+          }
+        })
+      } catch (error) {
+        console.error("Error initializing chat:", error)
+      }
     }
-  }, [warehouse.id, user.id])
+
+    initChat()
+    return () => unsubscribe()
+  }, [warehouse.id, user.id, user.uid])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault()
-    if (!newMessage.trim()) return
+    if (!newMessage.trim() || !conversation) return
 
-    const message = {
-      id: `MSG${Date.now()}`,
-      senderId: user.id,
-      senderType: user.userType,
-      message: newMessage,
-      timestamp: new Date().toISOString(),
-      read: false
+    try {
+      const text = newMessage.trim()
+      setNewMessage('') // Clear input immediately for UX
+      await sendMessage(
+        conversation.id, 
+        user.id || user.uid, 
+        text,
+        user.userType || 'merchant'
+      )
+    } catch (error) {
+      console.error("Error sending message:", error)
     }
-
-    setMessages([...messages, message])
-    setNewMessage('')
   }
 
   return (
@@ -60,51 +102,45 @@ export default function ChatBox({ warehouse, user, onClose }) {
       onClick={onClose}
     >
       <motion.div
-        className="bg-white rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl"
+        className="bg-white rounded-[2.5rem] w-full max-w-4xl h-[80vh] flex flex-col shadow-[0_32px_64px_-15px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-100"
         initial={{ scale: 0.9, y: 50 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 50 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Chat Header */}
-        <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-primary-50 to-orange-50">
+        <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-orange-50/50 to-white">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <div className="relative">
                 <img
-                  src={warehouse.images[0]}
-                  alt={warehouse.name}
-                  className="w-16 h-16 rounded-lg object-cover"
+                  src={warehouse.images?.[0] || warehouse.photos?.frontView || "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80"}
+                  alt={warehouse.name || warehouse.warehouseName || "Warehouse"}
+                  className="w-16 h-16 rounded-2xl object-cover shadow-md"
                 />
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{warehouse.name}</h3>
-                <p className="text-sm text-slate-600">
-                  {user.userType === 'merchant' ? warehouse.ownerName : 'Merchant Inquiry'}
-                </p>
-                <p className="text-xs text-slate-500">
-                  📍 {warehouse.location.city} • ₹{warehouse.pricing.amount.toLocaleString()}/month
-                </p>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">{warehouse.name || warehouse.warehouseName}</h3>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    {user.userType === 'merchant' ? warehouse.ownerName : 'Merchant Inquiry'}
+                  </p>
+                  <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                  <p className="text-xs font-black text-orange-500">
+                    📍 {warehouse.city || warehouse.location?.city || 'Location'}
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <motion.button
-                className="p-2 hover:bg-white rounded-lg transition-colors"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </motion.button>
+            <div className="flex items-center gap-3">
               <motion.button
                 onClick={onClose}
-                className="p-2 hover:bg-white rounded-lg transition-colors"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                className="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-colors text-slate-400 hover:text-slate-900"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </motion.button>
@@ -116,7 +152,7 @@ export default function ChatBox({ warehouse, user, onClose }) {
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
           <AnimatePresence>
             {messages.map((msg) => {
-              const isOwn = msg.senderId === user.id
+              const isOwn = msg.senderId === (user.id || user.uid)
               const isSystem = msg.senderType === 'system'
 
               if (isSystem) {
@@ -163,35 +199,35 @@ export default function ChatBox({ warehouse, user, onClose }) {
         </div>
 
         {/* Warehouse Info Sidebar (collapsed) */}
-        <div className="border-t border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-4 overflow-x-auto">
-            <div className="flex-shrink-0 px-4 py-2 bg-slate-50 rounded-lg">
-              <p className="text-xs text-slate-600">Area</p>
-              <p className="text-sm font-semibold text-slate-900">
-                {warehouse.size.area} {warehouse.size.unit}
+        <div className="border-t border-slate-100 bg-white p-6 relative z-10">
+          <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex-shrink-0 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-0.5">Area</p>
+              <p className="text-sm font-black text-slate-900">
+                {warehouse.totalArea || warehouse.size?.area || 'N/A'} sq ft
               </p>
             </div>
-            <div className="flex-shrink-0 px-4 py-2 bg-slate-50 rounded-lg">
-              <p className="text-xs text-slate-600">Monthly Rent</p>
-              <p className="text-sm font-semibold text-primary-600">
-                ₹{warehouse.pricing.amount.toLocaleString()}
+            <div className="flex-shrink-0 px-5 py-3 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+              <p className="text-[10px] text-orange-400 font-black uppercase tracking-widest mb-0.5">Monthly Rent</p>
+              <p className="text-xs text-slate-500">
+                📍 {warehouse.city || warehouse.location?.city || 'Location'} • ₹{(warehouse.pricingAmount || 0).toLocaleString()}/month
               </p>
             </div>
-            <div className="flex-shrink-0 px-4 py-2 bg-slate-50 rounded-lg">
-              <p className="text-xs text-slate-600">Category</p>
-              <p className="text-sm font-semibold text-slate-900">{warehouse.category}</p>
+            <div className="flex-shrink-0 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-0.5">Category</p>
+              <p className="text-sm font-black text-slate-900">{warehouse.warehouseCategory || warehouse.category || 'N/A'}</p>
             </div>
             <motion.button
-              className="flex-shrink-0 px-4 py-2 bg-primary-50 text-primary-700 rounded-lg font-medium text-sm hover:bg-primary-100"
-              whileHover={{ scale: 1.05 }}
+              className="flex-shrink-0 px-6 py-3 bg-white border-2 border-slate-200 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 hover:border-slate-300 transition-all ml-auto"
+              whileHover={{ scale: 1.02 }}
             >
-              View Full Details
+              Full Details
             </motion.button>
           </div>
         </div>
 
         {/* Message Input */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-200 bg-white">
+        <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-100 bg-white">
           <div className="flex items-end gap-3">
             <motion.button
               type="button"

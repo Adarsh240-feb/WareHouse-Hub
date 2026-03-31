@@ -1,8 +1,18 @@
 "use client";
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function HeroSection() {
   const videoRef = useRef(null);
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -125,7 +135,7 @@ export default function HeroSection() {
 
         {/* Search Bar — Desktop */}
         <div className="hidden lg:block" style={{ width: '100%', maxWidth: '560px', marginBottom: '28px' }}>
-          <div style={{
+          <form onSubmit={handleSearch} style={{
             display: 'flex',
             alignItems: 'center',
             background: 'rgba(255,255,255,0.96)',
@@ -141,6 +151,8 @@ export default function HeroSection() {
             <input
               type="text"
               placeholder="ZIP, City, or State..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 flex: 1,
                 background: 'transparent',
@@ -155,7 +167,7 @@ export default function HeroSection() {
             />
             <button
               className="search-btn"
-              type="button"
+              type="submit"
               style={{
                 background: '#f97316',
                 color: '#ffffff',
@@ -173,12 +185,12 @@ export default function HeroSection() {
             >
               Search Space
             </button>
-          </div>
+          </form>
         </div>
 
         {/* Search Bar — Mobile/Tablet */}
         <div className="lg:hidden" style={{ width: '100%', maxWidth: '560px', marginBottom: '28px' }}>
-          <div style={{
+          <form onSubmit={handleSearch} style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
@@ -186,6 +198,8 @@ export default function HeroSection() {
             <input
               type="text"
               placeholder="ZIP, City, or State..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 flex: 1,
                 background: 'rgba(255,255,255,0.96)',
@@ -202,7 +216,7 @@ export default function HeroSection() {
             />
             <button
               className="search-btn"
-              type="button"
+              type="submit"
               style={{
                 background: '#f97316',
                 color: '#ffffff',
@@ -221,7 +235,7 @@ export default function HeroSection() {
             >
               Search Space
             </button>
-          </div>
+          </form>
         </div>
 
         {/* Secondary row */}

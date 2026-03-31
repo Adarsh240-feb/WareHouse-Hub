@@ -4,9 +4,13 @@ import WarehouseCard from '../commonfiles/WarehouseCard';
 import DashboardNavbar from '../commonfiles/DashboardNavbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { warehouses, conversations } from '@/data/warehouseData';
+import { conversations } from '@/data/warehouseData';
 import MerchantSidebar from './MerchantSidebar';
 import { logoutUser, updateUserProfile, uploadProfileImage, sendVerificationEmail, refreshEmailVerification } from '@/lib/auth';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import ChatBox from '../commonfiles/ChatBox';
+import { Inbox, MessageCircle, Clock as ClockIcon, ExternalLink } from 'lucide-react';
 
 export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
     const [activeTab, setActiveTab] = useState('browse');
@@ -28,6 +32,10 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [localUser, setLocalUser] = useState(user);
     const [mounted, setMounted] = useState(false);
+    const [realChats, setRealChats] = useState([]);
+    const [selectedConv, setSelectedConv] = useState(null);
+    const [realWarehouses, setRealWarehouses] = useState([]);
+    const [warehousesLoading, setWarehousesLoading] = useState(true);
 
     // Sync localUser with user prop
     useEffect(() => {
@@ -45,8 +53,51 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
         setMounted(true);
     }, []);
 
-    // Get merchant's active chats
-    const merchantChats = conversations.filter(conv => conv.merchantId === user.id);
+    // Real-time listener for merchant's conversations
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        const q = query(
+            collection(db, 'conversations'),
+            where('merchantId', '==', user.uid)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const chats = snapshot.docs.map(doc => ({
+                id: doc.id,
+                warehouseName: doc.data().warehouseName || 'Unknown Warehouse',
+                ownerName: doc.data().ownerName || 'Unknown Owner',
+                ...doc.data()
+            }));
+            // Manual sort as a fallback for missing composite index
+            chats.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+            setRealChats(chats);
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid]);
+
+    // Real-time listener for approved warehouses
+    useEffect(() => {
+        const q = query(
+            collection(db, 'warehouse_details'),
+            where('status', '==', 'approved')
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const whList = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setRealWarehouses(whList);
+            setWarehousesLoading(false);
+        }, (error) => {
+            console.error("Error fetching warehouses:", error);
+            setWarehousesLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
@@ -141,12 +192,13 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
     };
 
     // Filter warehouses logic
-    const filteredWarehouses = warehouses.filter(wh => {
-        if (filters.city && !wh.location.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
-        if (filters.category && wh.category !== filters.category) return false;
-        if (filters.minArea && wh.size.area < parseInt(filters.minArea)) return false;
-        if (filters.maxBudget && wh.pricing.amount > parseInt(filters.maxBudget)) return false;
-        return true;
+    const filteredWarehouses = realWarehouses.filter(wh => {
+        const cityMatch = !filters.city || (wh.city && wh.city.toLowerCase().includes(filters.city.toLowerCase()));
+        const categoryMatch = !filters.category || wh.warehouseCategory === filters.category;
+        const areaMatch = !filters.minArea || (parseInt(wh.totalArea) >= parseInt(filters.minArea));
+        const priceMatch = !filters.maxBudget || (parseInt(wh.pricingAmount) <= parseInt(filters.maxBudget));
+        
+        return cityMatch && categoryMatch && areaMatch && priceMatch;
     });
 
     useEffect(() => {
@@ -247,8 +299,8 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
                                 >
                                     {/* Stats Row */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        <StatCard icon="🏭" label="Warehouses" value={warehouses.length} color="blue" />
-                                        <StatCard icon="💬" label="Active Chats" value={merchantChats.length} color="violet" />
+                                        <StatCard icon="🏭" label="Warehouses" value={realWarehouses.length} color="blue" />
+                                        <StatCard icon="💬" label="Active Chats" value={realChats.length} color="violet" />
                                         <StatCard icon="⭐" label="Saved" value="0" color="emerald" />
                                         <StatCard icon="📝" label="Requirements" value="0" color="amber" />
                                     </div>
@@ -260,24 +312,36 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
 
                                     {/* Warehouse Grid */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                        {filteredWarehouses.map((warehouse) => (
-                                            <div
-                                                key={warehouse.id}
-                                                onClick={() => setSelectedWarehouse(warehouse)}
-                                                className="cursor-pointer transition-transform hover:scale-[1.02]"
-                                            >
-                                                <WarehouseCard
-                                                    title={warehouse.name}
-                                                    location={`${warehouse.location.area}, ${warehouse.location.city}`}
-                                                    price={warehouse.pricing.amount.toLocaleString()}
-                                                    area={warehouse.size.area.toLocaleString()}
-                                                    type={warehouse.category}
-                                                    imageUrl={warehouse.images[0]}
-                                                    facilities={warehouse.facilities}
-                                                    amenities={warehouse.amenities}
-                                                />
+                                        {warehousesLoading ? (
+                                            <div className="col-span-full py-12 text-center">
+                                                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                                <p className="text-slate-500 font-medium">Fetching real listings...</p>
                                             </div>
-                                        ))}
+                                        ) : filteredWarehouses.length === 0 ? (
+                                            <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-300">
+                                                <p className="text-slate-400 font-medium">No verified warehouses found matching your criteria.</p>
+                                            </div>
+                                        ) : (
+                                            filteredWarehouses.map((warehouse) => (
+                                                <div
+                                                    key={warehouse.id}
+                                                    onClick={() => setSelectedWarehouse(warehouse)}
+                                                    className="cursor-pointer transition-transform hover:scale-[1.02]"
+                                                >
+                                                    <WarehouseCard
+                                                        id={warehouse.id}
+                                                        title={warehouse.warehouseName}
+                                                        location={`${warehouse.city}, ${warehouse.state}`}
+                                                        price={warehouse.pricingAmount?.toLocaleString('en-IN') || 'Contact'}
+                                                        area={warehouse.totalArea?.toLocaleString()}
+                                                        type={warehouse.warehouseCategory}
+                                                        imageUrl={warehouse.photos?.frontView || warehouse.images?.[0]}
+                                                        facilities={warehouse.amenities || []}
+                                                        amenities={warehouse.amenities || []}
+                                                    />
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 </motion.div>
                             )}
@@ -513,7 +577,92 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
                                     </div>
                                 </motion.div>
                             )}
-                            {activeTab !== 'browse' && activeTab !== 'settings' && (
+                            {activeTab === 'chats' && (
+                                <motion.div
+                                    key="chats"
+                                    initial={{ x: 60, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ x: -60, opacity: 0 }}
+                                    transition={{ duration: 0.3, type: 'tween' }}
+                                    className="space-y-6"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xl font-bold text-slate-800">Your Conversations</h2>
+                                        <span className="text-sm text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+                                            {realChats.length} Conversations
+                                        </span>
+                                    </div>
+
+                                    {realChats.length === 0 ? (
+                                        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
+                                            <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <Inbox className="w-10 h-10 text-blue-400" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-900 mb-2">No active chats</h3>
+                                            <p className="text-slate-500 max-w-sm mx-auto mb-8">
+                                                Messages you send to warehouse owners will appear here. Start a conversation to inquire about a space.
+                                            </p>
+                                            <button 
+                                                onClick={() => setActiveTab('browse')}
+                                                className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors"
+                                            >
+                                                Start Browsing
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {realChats.map((chat) => (
+                                                <div 
+                                                    key={chat.id}
+                                                    onClick={() => setSelectedConv(chat)}
+                                                    className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-16 h-16 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0">
+                                                            {/* We'd normally use a real warehouse image here */}
+                                                            <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                                                <MessageCircle className="w-8 h-8" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <h4 className="font-bold text-slate-900 truncate">
+                                                                    {chat.warehouseName || 'Warehouse Inquiry'}
+                                                                </h4>
+                                                                <div className="flex items-center gap-2">
+                                                                    {chat.status === 'access_granted' && (
+                                                                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold uppercase rounded-md font-black">
+                                                                            Contact Unlocked
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="text-xs text-slate-400 whitespace-nowrap">
+                                                                        {(chat.updatedAt?.toDate?.() || new Date()).toLocaleDateString()}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                                                Owner: {chat.ownerName || 'Contact Person'}
+                                                            </p>
+                                                            <p className="text-sm text-slate-500 truncate mb-2">
+                                                                {chat.lastMessage || 'Click to continue conversation'}
+                                                            </p>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                                                    Inquiry
+                                                                </span>
+                                                                <span className="text-xs font-medium text-blue-600 flex items-center gap-1 group-hover:underline">
+                                                                    Resume Chat <ExternalLink className="w-3 h-3" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                            {activeTab !== 'browse' && activeTab !== 'settings' && activeTab !== 'chats' && (
                                 <motion.div
                                     key={activeTab}
                                     initial={{ x: 60, opacity: 0 }}
@@ -541,7 +690,11 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
                         >
                             <div className="relative h-80">
-                                <img src={selectedWarehouse.images[0]} alt={selectedWarehouse.name} className="w-full h-full object-cover" />
+                                <img 
+                                    src={selectedWarehouse.photos?.frontView || selectedWarehouse.images?.[0]} 
+                                    alt={selectedWarehouse.warehouseName} 
+                                    className="w-full h-full object-cover" 
+                                />
                                 <button
                                     onClick={() => setSelectedWarehouse(null)}
                                     className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-slate-700 hover:bg-white"
@@ -549,13 +702,13 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
                             </div>
 
                             <div className="p-4 sm:p-8">
-                                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">{selectedWarehouse.name}</h2>
-                                <p className="text-slate-500 mb-6 sm:mb-8">📍 {selectedWarehouse.location.address}</p>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">{selectedWarehouse.warehouseName}</h2>
+                                <p className="text-slate-500 mb-6 sm:mb-8">📍 {selectedWarehouse.address || selectedWarehouse.location?.address}</p>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 p-4 sm:p-6 bg-slate-50 rounded-2xl">
-                                    <DetailBox label="Monthly Rent" value={`₹${selectedWarehouse.pricing.amount.toLocaleString()}`} isPrice />
-                                    <DetailBox label="Size" value={`${selectedWarehouse.size.area} ${selectedWarehouse.size.unit}`} />
-                                    <DetailBox label="Type" value={selectedWarehouse.category} />
+                                    <DetailBox label="Monthly Rent" value={`₹${selectedWarehouse.pricingAmount?.toLocaleString('en-IN') || 'Contact'}`} isPrice />
+                                    <DetailBox label="Size" value={`${selectedWarehouse.totalArea} sq ft`} />
+                                    <DetailBox label="Type" value={selectedWarehouse.warehouseCategory} />
                                 </div>
 
                                 <div className="space-y-4 sm:space-y-6">
@@ -575,6 +728,24 @@ export default function MerchantDashboard({ user, onLogout, onOpenChat }) {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+            {/* ChatBox for Dashboard */}
+            <AnimatePresence>
+                {selectedConv && (
+                    <ChatBox 
+                        warehouse={{
+                            id: selectedConv.warehouseId,
+                            name: 'Warehouse Inquiry',
+                            ownerId: selectedConv.ownerId,
+                            ownerName: selectedConv.ownerName || 'Owner',
+                            images: [],
+                            location: { city: '' },
+                            pricing: { amount: 0 }
+                        }}
+                        user={user}
+                        onClose={() => setSelectedConv(null)}
+                    />
                 )}
             </AnimatePresence>
         </motion.div>

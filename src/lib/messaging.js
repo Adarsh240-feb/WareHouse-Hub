@@ -1,0 +1,90 @@
+import { 
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, 
+  query, where, orderBy, onSnapshot, serverTimestamp, setDoc 
+} from 'firebase/firestore';
+import { db } from './firebase';
+
+/**
+ * Get or create a conversation between a merchant and an owner for a specific warehouse
+ * We store redundant info (names, titles) so dashboards load fast and are organized.
+ */
+export const getOrCreateConversation = async (warehouseId, merchantId, ownerId, metadata = {}) => {
+  const convId = `${warehouseId}_${merchantId}`;
+  const convRef = doc(db, 'conversations', convId);
+  const convSnap = await getDoc(convRef);
+
+  if (convSnap.exists()) {
+    // If it exists, update potentially missing metadata if needed
+    return { id: convSnap.id, ...convSnap.data() };
+  }
+
+  const newConv = {
+    warehouseId,
+    merchantId,
+    ownerId,
+    warehouseName: metadata.warehouseName || 'Warehouse',
+    merchantName: metadata.merchantName || 'Merchant',
+    ownerName: metadata.ownerName || 'Owner',
+    totalArea: metadata.totalArea || 0,
+    pricingAmount: metadata.pricingAmount || 0,
+    city: metadata.city || 'Location',
+    category: metadata.category || 'Storage',
+    status: 'pending',
+    stage: 'new', // Kanban sorting field
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    lastMessage: 'Conversation started',
+    unreadCount: 0
+  };
+
+  await setDoc(convRef, newConv);
+  return { id: convId, ...newConv };
+};
+
+/**
+ * Send a message in a conversation
+ */
+export const sendMessage = async (conversationId, senderId, text, senderType = 'merchant') => {
+  const msgRef = collection(db, 'conversations', conversationId, 'messages');
+  await addDoc(msgRef, {
+    senderId,
+    senderType, // 'merchant' or 'owner'
+    text,
+    message: text, // redundant field for compatibility
+    timestamp: serverTimestamp(),
+    read: false
+  });
+
+  // Update conversation's last message and updatedAt
+  const convRef = doc(db, 'conversations', conversationId);
+  await updateDoc(convRef, {
+    lastMessage: text,
+    lastSenderId: senderId,
+    updatedAt: serverTimestamp()
+  });
+};
+
+/**
+ * Grant contact access to a merchant
+ */
+export const grantContactAccess = async (conversationId) => {
+  const convRef = doc(db, 'conversations', conversationId);
+  await updateDoc(convRef, {
+    status: 'access_granted',
+    updatedAt: serverTimestamp()
+  });
+};
+
+/**
+ * Check if contact access is granted for a warehouse
+ */
+export const checkAccessStatus = async (warehouseId, merchantId) => {
+  const convId = `${warehouseId}_${merchantId}`;
+  const convRef = doc(db, 'conversations', convId);
+  const convSnap = await getDoc(convRef);
+  
+  if (convSnap.exists()) {
+    return convSnap.data().status === 'access_granted';
+  }
+  return false;
+};
