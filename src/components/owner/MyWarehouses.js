@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   MapPin, Building2, Layers, Package, DoorOpen,
   TrendingUp, Calendar, CheckCircle, Loader2, Plus,
   Warehouse, ShieldCheck, Tag, Clock,
-  ChevronDown, Wifi, WifiOff, CheckCircle2, XCircle,
+  ChevronDown, Wifi, WifiOff, CheckCircle2, XCircle, Trash2
 } from 'lucide-react';
 
 export default function MyWarehouses({ setActiveTab }) {
@@ -119,7 +119,11 @@ export default function MyWarehouses({ setActiveTab }) {
       {/* Cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {warehouses.map(w => (
-          <WarehouseCard key={w.id} warehouse={w} />
+          <WarehouseCard
+            key={w.id}
+            warehouse={w}
+            onDelete={(id) => setWarehouses(prev => prev.filter(item => item.id !== id))}
+          />
         ))}
       </div>
     </div>
@@ -129,8 +133,9 @@ export default function MyWarehouses({ setActiveTab }) {
 // ─────────────────────────────────────────────────────────────
 // WarehouseCard — renders one Firestore warehouse document
 // ─────────────────────────────────────────────────────────────
-function WarehouseCard({ warehouse: w }) {
+function WarehouseCard({ warehouse: w, onDelete }) {
   const frontPhoto = w.photos?.frontView || null;
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // ── Approval status badge (set by admin) ──────────────────
   const approvalBadge = {
@@ -181,6 +186,21 @@ function WarehouseCard({ warehouse: w }) {
       console.error('Failed to update availability:', err);
     } finally {
       setToggling(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this warehouse? This action cannot be undone.')) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'warehouse_details', w.id));
+      if (onDelete) onDelete(w.id);
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete warehouse. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -260,12 +280,22 @@ function WarehouseCard({ warehouse: w }) {
           </div>
         )}
 
-        {/* ── TOP-RIGHT — Category badge (always visible) ── */}
-        {w.warehouseCategory && (
-          <div className="absolute top-3 right-3 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-bold text-slate-700 border border-white/60">
-            {w.warehouseCategory}
-          </div>
-        )}
+        {/* ── TOP-RIGHT — Category badge & Delete button ── */}
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          {w.warehouseCategory && (
+            <div className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-bold text-slate-700 border border-white/60">
+              {w.warehouseCategory}
+            </div>
+          )}
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="p-1.5 bg-red-500/10 hover:bg-red-500/90 text-red-500 hover:text-white backdrop-blur-sm border border-red-500/20 rounded-lg transition-all"
+            title="Delete Listing"
+          >
+            {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          </button>
+        </div>
       </div>
 
 

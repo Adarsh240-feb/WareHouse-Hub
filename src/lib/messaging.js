@@ -1,8 +1,10 @@
 import { 
-  collection, doc, addDoc, getDoc, getDocs, updateDoc, 
+  collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, where, orderBy, onSnapshot, serverTimestamp, setDoc 
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { filterAbusiveWords } from './wordFilter';
+
 
 /**
  * Get or create a conversation between a merchant and an owner for a specific warehouse
@@ -45,12 +47,14 @@ export const getOrCreateConversation = async (warehouseId, merchantId, ownerId, 
  * Send a message in a conversation
  */
 export const sendMessage = async (conversationId, senderId, text, senderType = 'merchant') => {
+  const filteredText = filterAbusiveWords(text);
+
   const msgRef = collection(db, 'conversations', conversationId, 'messages');
   await addDoc(msgRef, {
     senderId,
     senderType, // 'merchant' or 'owner'
-    text,
-    message: text, // redundant field for compatibility
+    text: filteredText,
+    message: filteredText, // redundant field for compatibility
     timestamp: serverTimestamp(),
     read: false
   });
@@ -58,7 +62,7 @@ export const sendMessage = async (conversationId, senderId, text, senderType = '
   // Update conversation's last message and updatedAt
   const convRef = doc(db, 'conversations', conversationId);
   await updateDoc(convRef, {
-    lastMessage: text,
+    lastMessage: filteredText,
     lastSenderId: senderId,
     updatedAt: serverTimestamp()
   });
@@ -88,3 +92,12 @@ export const checkAccessStatus = async (warehouseId, merchantId) => {
   }
   return false;
 };
+
+/**
+ * Delete a conversation
+ */
+export const deleteConversation = async (conversationId) => {
+  const convRef = doc(db, 'conversations', conversationId);
+  await deleteDoc(convRef);
+};
+

@@ -9,10 +9,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   MessageSquare, Phone, Calendar, ArrowRight, CheckCircle,
   Clock, MoreHorizontal, Trophy, Download, Loader2, Inbox,
-  ShieldCheck, Unlock
+  ShieldCheck, Unlock, Trash2
 } from 'lucide-react';
 import ChatBox from '../commonfiles/ChatBox';
-import { getOrCreateConversation, grantContactAccess } from '@/lib/messaging';
+import { getOrCreateConversation, grantContactAccess, deleteConversation } from '@/lib/messaging';
 
 // ─────────────────────────────────────────────────────────────
 // Firestore inquiry schema (when a merchant submits an inquiry):
@@ -39,6 +39,7 @@ export default function Inquiries() {
   const [celebrationDetails, setCelebrationDetails] = useState(null);
   const [selectedChat, setSelectedChat] = useState(null);
   const [grantingId, setGrantingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   // ── Real-time listener ─────────────────────────────────────
   useEffect(() => {
@@ -111,6 +112,21 @@ export default function Inquiries() {
       console.error('Grant access error:', e);
     } finally {
       setGrantingId(null);
+    }
+  };
+
+  const handleDeleteDeal = async (conv) => {
+    if (deletingId === conv.id) return;
+    if (!window.confirm(`Are you sure you want to remove the deal with ${conv.merchantName}? This will permanently delete the conversation and messages.`)) return;
+
+    setDeletingId(conv.id);
+    try {
+      await deleteConversation(conv.id);
+    } catch (e) {
+      console.error('Delete deal error:', e);
+      alert('Failed to delete the deal. Please try again.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -229,7 +245,17 @@ export default function Inquiries() {
               <div key={item.id} className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
                 <div className="flex justify-between items-start mb-1">
                   <h4 className="font-bold text-slate-900 line-clamp-1">{item.merchantName}</h4>
-                  <button className="text-slate-300 hover:text-slate-600"><MoreHorizontal className="w-4 h-4" /></button>
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={() => handleDeleteDeal(item)}
+                      disabled={deletingId === item.id}
+                      className="text-slate-300 hover:text-red-500 p-1 rounded-md transition-colors"
+                      title="Remove Deal"
+                    >
+                      {deletingId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                    <button className="text-slate-300 hover:text-slate-600"><MoreHorizontal className="w-4 h-4" /></button>
+                  </div>
                 </div>
                 <p className="text-xs text-slate-500 mb-1 line-clamp-1">
                   Interested in <span className="font-medium text-slate-700">{item.warehouseName}</span>
@@ -276,6 +302,14 @@ export default function Inquiries() {
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-bold text-slate-900 line-clamp-1">{item.merchantName}</h4>
                   <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleDeleteDeal(item)}
+                      disabled={deletingId === item.id}
+                      className="p-1.5 bg-slate-50 text-slate-400 rounded-lg hover:bg-red-50 hover:text-red-600"
+                      title="Remove Deal"
+                    >
+                      {deletingId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
                     <button 
                       onClick={() => openChat(item)}
                       className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
@@ -332,9 +366,21 @@ export default function Inquiries() {
                   <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 shadow-sm shrink-0">
                     <CheckCircle className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{item.merchantName}</h4>
-                    <p className="text-[10px] text-slate-400 line-clamp-1">{item.warehouseName}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start w-full">
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{item.merchantName}</h4>
+                        <p className="text-[10px] text-slate-400 line-clamp-1">{item.warehouseName}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteDeal(item)}
+                        disabled={deletingId === item.id}
+                        className="text-slate-300 hover:text-red-500 p-1 transition-colors"
+                        title="Remove Deal"
+                      >
+                        {deletingId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                     <p className="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-full w-fit mt-1">
                       Deal Closed
                     </p>

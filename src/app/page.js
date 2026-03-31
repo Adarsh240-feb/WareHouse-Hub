@@ -37,9 +37,12 @@ export default function Home() {
   // ── 1. Wait for Firebase to resolve auth state ──────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50" suppressHydrationWarning>
+        <div className="flex flex-col items-center gap-4" suppressHydrationWarning>
+          <div 
+            className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" 
+            suppressHydrationWarning 
+          />
           <p className="text-slate-500 text-sm font-medium">Loading…</p>
         </div>
       </div>
@@ -87,7 +90,7 @@ export default function Home() {
 
   // ── 3. Not logged in → landing page ─────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900" suppressHydrationWarning>
       <Navbar />
       <HeroSection />
       <WhyWarehouseHub />

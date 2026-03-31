@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Building2, MessageSquare, Layers, Eye,
   Plus, TrendingUp, ArrowRight, Activity,
   DollarSign, MoreHorizontal, Loader2,
-  MapPin, Tag, CheckCircle
+  MapPin, Tag, CheckCircle, Trash2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -48,6 +48,23 @@ export default function DashboardHome({ setActiveTab, user }) {
     };
     fetch();
   }, [uid]);
+
+  const handleClearAll = async () => {
+    if (warehouses.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ALL ${warehouses.length} warehouses? This cannot be undone.`)) return;
+
+    setLoading(true);
+    try {
+      const promises = warehouses.map(w => deleteDoc(doc(db, 'warehouse_details', w.id)));
+      await Promise.all(promises);
+      setWarehouses([]);
+    } catch (e) {
+      console.error('Clear all error:', e);
+      alert('Failed to clear some warehouses.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ── Derived stats ───────────────────────────────────────────
   const totalWarehouses = warehouses.length;
@@ -95,12 +112,24 @@ export default function DashboardHome({ setActiveTab, user }) {
             Welcome back, {firstName}. Here&apos;s your live portfolio.
           </p>
         </div>
-        <button
-          onClick={() => setActiveTab('add-warehouse')}
-          className="self-start md:self-auto flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-lg shadow-slate-200 hover:-translate-y-1"
-        >
-          <Plus className="w-5 h-5" /> List New Warehouse
-        </button>
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          {warehouses.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              disabled={loading}
+              className="flex items-center gap-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 py-3 rounded-xl font-medium transition-all shadow-sm disabled:opacity-50"
+              title="Remove all test data"
+            >
+              <Trash2 className="w-4 h-4" /> Clear All
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTab('add-warehouse')}
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-lg shadow-slate-200 hover:-translate-y-1"
+          >
+            <Plus className="w-5 h-5" /> List New Warehouse
+          </button>
+        </div>
       </div>
 
       {/* ── Stat cards ── */}
