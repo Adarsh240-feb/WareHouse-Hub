@@ -13,6 +13,7 @@ import MerchantDashboard from '@/components/merchant/MerchantDashboard'
 import OwnerDashboard from '@/components/owner/OwnerDashboard'
 import AdminDashboard from '@/components/admin/AdminDashboard'
 import ChatBox from '@/components/commonfiles/ChatBox'
+import FeedbackWidget from '@/components/commonfiles/FeedbackWidget' // <-- 1. Import the widget
 
 export default function Home() {
   const { user, loading, setUser } = useAuth()
@@ -98,6 +99,9 @@ export default function Home() {
       <Login onLoginSuccess={(userData) => setUser(userData)} />
       <GetStarted />
       <Footer />
+      
+      {/* ── 4. Floating Feedback Widget ── */}
+      <FeedbackWidget /> 
     </div>
   )
 }
