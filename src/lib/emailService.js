@@ -1,12 +1,11 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
  * Professional Email Service for Link2Logistics
  */
 export const sendVerificationEmail = async (email, name, verificationLink) => {
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
       from: 'Link2Logistics <onboarding@resend.dev>', // You should update this to your domain later
       to: [email],
