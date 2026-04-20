@@ -1,73 +1,106 @@
 'use client'
 import { useState } from 'react';
-import { LayoutDashboard, MessageSquare, Star, FileText, Building2, LogOut, Settings } from 'lucide-react';
+import { 
+  Building2, MessageSquare, Star, FileText, 
+  LogOut, Settings, Sparkles 
+} from 'lucide-react';
 
 export default function MerchantSidebar({ activeTab, setActiveTab, onLogout, isDrawer = false }) {
   const menuItems = [
-    { id: 'browse', label: 'Browse Warehouses', icon: Building2 },
+    { id: 'browse', label: 'Browse Directory', icon: Building2 },
     { id: 'chats', label: 'Active Chats', icon: MessageSquare },
-    { id: 'saved', label: 'Saved', icon: Star },
+    { id: 'saved', label: 'Saved Properties', icon: Star },
     { id: 'requirements', label: 'My Requirements', icon: FileText },
   ];
 
+  // Premium Sidebar Container Classes
   const sidebarClasses = isDrawer 
-    ? "w-full h-full bg-white flex flex-col"
-    : "group w-20 hover:w-64 bg-white h-screen sticky top-0 z-50 transition-all duration-300 ease-in-out flex flex-col border-r border-slate-200 shadow-[20px_0_50px_rgba(0,0,0,0.02)] overflow-hidden";
+    ? "w-full h-full bg-[#0B101E] flex flex-col relative overflow-hidden"
+    : "group w-20 hover:w-64 bg-[#0B101E] h-screen sticky top-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col border-r border-white/5 shadow-[20px_0_50px_rgba(0,0,0,0.1)] overflow-hidden";
 
-  const containerClasses = isDrawer ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-all duration-300";
+  // Text Fade-in Classes
+  const containerClasses = isDrawer 
+    ? "opacity-100 transition-opacity duration-300" 
+    : "opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none group-hover:pointer-events-auto";
 
   return (
     <div className={sidebarClasses}>
-      {/* Brand Logo Area */}
-      <div className={`h-20 flex items-center border-b border-slate-100 shrink-0 bg-slate-50/30 ${isDrawer ? 'px-8' : 'px-[1.375rem]'}`} onClick={() => window.location.reload()}>
-        <div className="w-9 h-9 bg-violet-600 rounded-xl flex items-center justify-center text-white font-bold shrink-0 shadow-lg shadow-violet-600/20">
+      
+      {/* Subtle Ambient Glow inside the dark sidebar */}
+      <div className="absolute top-0 left-0 w-full h-64 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none z-0" />
+
+      {/* ── Brand Logo Area ── */}
+      <div 
+        className={`h-24 flex items-center border-b border-white/10 shrink-0 bg-white/5 relative z-10 cursor-pointer ${isDrawer ? 'px-8' : 'px-[1.375rem]'}`} 
+        onClick={() => window.location.reload()}
+      >
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.3)] border border-white/20">
           WH
         </div>
-        <span className={`ml-4 text-xl font-bold text-slate-900 whitespace-nowrap ${containerClasses}`}>
-          Merchant Portal
-        </span>
+        <div className={`ml-4 flex flex-col justify-center ${containerClasses}`}>
+          <span className="text-lg font-black text-white tracking-tight leading-none">
+            WarehouseHub
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mt-1 flex items-center gap-1">
+            Client Portal <Sparkles className="w-3 h-3" />
+          </span>
+        </div>
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 py-8 flex flex-col gap-1.5 px-3 overflow-y-auto overflow-x-hidden">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center px-3.5 py-3 rounded-xl transition-all duration-200 whitespace-nowrap group/item ${
-              activeTab === item.id 
-                ? 'bg-violet-50 text-violet-700 shadow-sm translate-x-1' 
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-          >
-            <item.icon className={`w-5 h-5 shrink-0 transition-transform duration-300 ${activeTab === item.id ? 'text-violet-600 scale-110' : 'text-slate-400 group-hover/item:scale-110'}`} />
-            <span className={`ml-4 text-sm font-semibold tracking-wide ${containerClasses}`}>
-              {item.label}
-            </span>
-          </button>
-        ))}
+      {/* ── Navigation Menu ── */}
+      <nav className="flex-1 py-8 flex flex-col gap-2 px-4 overflow-y-auto overflow-x-hidden custom-scrollbar relative z-10">
+        {menuItems.map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center px-3.5 py-3.5 rounded-2xl transition-all duration-300 group/item relative overflow-hidden ${
+                isActive 
+                  ? 'text-white shadow-lg shadow-blue-500/20' 
+                  : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+              }`}
+            >
+              {/* Active Gradient Background */}
+              {isActive && (
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-100" />
+              )}
+              
+              <item.icon className={`w-5 h-5 shrink-0 transition-transform duration-300 relative z-10 ${
+                isActive ? 'text-white drop-shadow-md scale-110' : 'group-hover/item:scale-110'
+              }`} />
+              
+              <span className={`ml-4 text-sm font-bold tracking-wide relative z-10 ${containerClasses}`}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </nav>
 
-      {/* Bottom Actions */}
-      <div className="p-4 border-t border-slate-100 bg-slate-50/30">
+      {/* ── Bottom Actions ── */}
+      <div className="p-4 border-t border-white/10 bg-black/20 relative z-10">
+        
         <button 
           onClick={() => setActiveTab && setActiveTab('settings')}
-          className="w-full flex items-center px-3.5 py-3 text-slate-600 hover:bg-slate-100 rounded-xl transition-all duration-200 whitespace-nowrap group/settings"
+          className="w-full flex items-center px-3.5 py-3.5 text-slate-400 hover:bg-white/5 hover:text-slate-200 rounded-2xl transition-all duration-200 group/settings"
         >
-          <Settings className="w-5 h-5 shrink-0 text-slate-400 group-hover/settings:rotate-45 transition-transform" />
-          <span className={`ml-4 text-sm font-semibold ${containerClasses}`}>
+          <Settings className="w-5 h-5 shrink-0 group-hover/settings:rotate-45 transition-transform duration-500" />
+          <span className={`ml-4 text-sm font-bold tracking-wide ${containerClasses}`}>
             Settings
           </span>
         </button>
+
         <button 
           onClick={onLogout}
-          className="w-full flex items-center px-3.5 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 whitespace-nowrap group/logout mt-1"
+          className="w-full flex items-center px-3.5 py-3.5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 rounded-2xl transition-all duration-200 group/logout mt-1"
         >
-          <LogOut className="w-5 h-5 shrink-0 group-hover/logout:-translate-x-0.5 transition-transform" />
-          <span className={`ml-4 text-sm font-semibold ${containerClasses}`}>
-            Logout
+          <LogOut className="w-5 h-5 shrink-0 group-hover/logout:-translate-x-1 transition-transform" />
+          <span className={`ml-4 text-sm font-bold tracking-wide ${containerClasses}`}>
+            Secure Log Out
           </span>
         </button>
+        
       </div>
     </div>
   );
