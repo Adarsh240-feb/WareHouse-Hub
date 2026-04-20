@@ -1141,7 +1141,7 @@ function MigrationView({ showToast }) {
 
         try {
             // Step 1: Migrate users collection
-            addLog('🔍 Scanning users collection...', 'info');
+            addLog('[INFO] Scanning users collection...', 'info');
             const usersSnap = await gd(col(db, 'users'));
             let scanned = 0, updated = 0, skipped = 0, errors = 0;
 
@@ -1158,10 +1158,10 @@ function MigrationView({ showToast }) {
                             _migratedAt: st()
                         });
                         updated++;
-                        addLog(`✅ ${data.email || userDoc.id}: owner → warehouse_partner`, 'success');
+                        addLog(`[SUCCESS] ${data.email || userDoc.id}: owner → warehouse_partner`, 'success');
                     } catch (e) {
                         errors++;
-                        addLog(`❌ Failed to migrate ${data.email || userDoc.id}: ${e.message}`, 'error');
+                        addLog(`[ERROR] Failed to migrate ${data.email || userDoc.id}: ${e.message}`, 'error');
                     }
                 } else if (oldType === 'merchant') {
                     try {
@@ -1171,10 +1171,10 @@ function MigrationView({ showToast }) {
                             _migratedAt: st()
                         });
                         updated++;
-                        addLog(`✅ ${data.email || userDoc.id}: merchant → business_client`, 'success');
+                        addLog(`[SUCCESS] ${data.email || userDoc.id}: merchant → business_client`, 'success');
                     } catch (e) {
                         errors++;
-                        addLog(`❌ Failed to migrate ${data.email || userDoc.id}: ${e.message}`, 'error');
+                        addLog(`[ERROR] Failed to migrate ${data.email || userDoc.id}: ${e.message}`, 'error');
                     }
                 } else {
                     skipped++;
@@ -1182,10 +1182,10 @@ function MigrationView({ showToast }) {
                 setStats({ scanned, updated, skipped, errors });
             }
 
-            addLog(`\n📊 Users migration complete: ${updated} updated, ${skipped} skipped, ${errors} errors`, updated > 0 ? 'success' : 'info');
+            addLog(`\n[SUMMARY] Users migration complete: ${updated} updated, ${skipped} skipped, ${errors} errors`, updated > 0 ? 'success' : 'info');
 
             // Step 2: Migrate contact_details — copy owner → warehouse_partner, merchant → business_client
-            addLog('\n🔍 Scanning contact_details collections...', 'info');
+            addLog('\n[INFO] Scanning contact_details collections...', 'info');
 
             const roleMappings = [
                 { oldRole: 'owner', newRole: 'warehouse_partner' },
@@ -1210,20 +1210,20 @@ function MigrationView({ showToast }) {
                                 _migratedAt: st()
                             }, { merge: true });
                             contactUpdated++;
-                            addLog(`✅ contact_details: ${contactDoc.id} (${oldRole} → ${newRole})`, 'success');
+                            addLog(`[SUCCESS] contact_details: ${contactDoc.id} (${oldRole} → ${newRole})`, 'success');
                         } catch (e) {
-                            addLog(`❌ contact_details migration failed for ${contactDoc.id}: ${e.message}`, 'error');
+                            addLog(`[ERROR] contact_details migration failed for ${contactDoc.id}: ${e.message}`, 'error');
                         }
                     }
                 } catch (e) {
-                    addLog(`⚠️ Could not read contact_details/${oldRole}: ${e.message}`, 'warn');
+                    addLog(`[WARNING] Could not read contact_details/${oldRole}: ${e.message}`, 'warn');
                 }
             }
 
-            addLog(`\n📊 Contact details migration: ${contactUpdated} records copied`, contactUpdated > 0 ? 'success' : 'info');
+            addLog(`\n[SUMMARY] Contact details migration: ${contactUpdated} records copied`, contactUpdated > 0 ? 'success' : 'info');
 
             // Step 3: Migrate warehouse_details
-            addLog('\n🔍 Scanning warehouse_details...', 'info');
+            addLog('\n[INFO] Scanning warehouse_details...', 'info');
             let whUpdated = 0, whSkipped = 0, whErrors = 0;
             try {
                 const { collectionGroup } = await import('firebase/firestore');
@@ -1247,25 +1247,25 @@ function MigrationView({ showToast }) {
                                 _migratedAt: st()
                             }, { merge: true });
                             whUpdated++;
-                            addLog(`✅ warehouse_details: ${whId} (${email}) → warehouse_partner`, 'success');
+                            addLog(`[SUCCESS] warehouse_details: ${whId} (${email}) → warehouse_partner`, 'success');
                         } catch (e) {
                             whErrors++;
-                            addLog(`❌ warehouse_details migration failed for ${whId}: ${e.message}`, 'error');
+                            addLog(`[ERROR] warehouse_details migration failed for ${whId}: ${e.message}`, 'error');
                         }
                     } else {
                         whSkipped++;
                     }
                 }
-                addLog(`\n📊 Warehouse details migration: ${whUpdated} records copied`, whUpdated > 0 ? 'success' : 'info');
+                addLog(`\n[SUMMARY] Warehouse details migration: ${whUpdated} records copied`, whUpdated > 0 ? 'success' : 'info');
             } catch (e) {
-                addLog(`❌ Failed to scan warehouses: ${e.message}`, 'error');
+                addLog(`[ERROR] Failed to scan warehouses: ${e.message}`, 'error');
             }
 
-            addLog('\n🎉 Migration complete!', 'success');
+            addLog('\n[DONE] Migration complete!', 'success');
             showToast(`Migration complete! ${updated} users, ${contactUpdated} contacts, ${whUpdated} warehouses updated.`, 'success');
 
         } catch (err) {
-            addLog(`❌ Migration failed: ${err.message}`, 'error');
+            addLog(`[ERROR] Migration failed: ${err.message}`, 'error');
             showToast('Migration failed. Check the log for details.', 'error');
         } finally {
             setMigrating(false);
