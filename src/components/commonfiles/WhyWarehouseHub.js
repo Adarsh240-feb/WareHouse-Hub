@@ -1,40 +1,40 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Building2, Handshake, ShieldCheck, BarChart3 } from "lucide-react";
+import { Building2, Handshake, ShieldCheck, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 
 const features = [
   {
-    title: "Verified Hubs",
-    label: "NETWORK",
-    desc: "Access a curated network of verified Warehouse Partners across India's industrial centers.",
-    stat: "500+",
-    statLabel: "Facilities",
+    title: "Warehouse Experts",
+    label: "EXPERTISE",
+    desc: "Built by someone with deep logistics experience. Understand operational complexity, delivery challenges, partnership dynamics.",
+    stat: "Deep",
+    statLabel: "Industry Roots",
     icon: Building2,
   },
   {
-    title: "Direct Access",
-    label: "CONNECT",
-    desc: "Skip the middleman. Negotiate directly with facility managers for better rates and terms.",
-    stat: "Direct",
-    statLabel: "Intermediaries",
-    icon: Handshake,
-  },
-  {
-    title: "Secure Agreements",
-    label: "PROTECT",
-    desc: "Execute safe transactions with built-in identity verification and secure digital contracts.",
+    title: "Verified Partnerships",
+    label: "TRUST",
+    desc: "Both sides are validated before matching. Clear capacity, transparent pricing, SLA clarity, operational readiness. No surprises.",
     stat: "100%",
-    statLabel: "Verified IDs",
+    statLabel: "Pre-Validated",
     icon: ShieldCheck,
   },
   {
-    title: "Real-time Tracking",
-    label: "MONITOR",
-    desc: "A unified dashboard to manage inquiries, inventory, and conversations in one place.",
-    stat: "24/7",
-    statLabel: "Live Visibility",
-    icon: BarChart3,
+    title: "Operational Support",
+    label: "FACILITATION",
+    desc: "We don't just match—we facilitate, coordinate terms, manage handoffs. Stay involved to ensure partnerships work and scale.",
+    stat: "Active",
+    statLabel: "Involvement",
+    icon: Handshake,
+  },
+  {
+    title: "Built for India",
+    label: "LOCALIZED",
+    desc: "Understand Indian logistics ecosystem, infrastructure realities, operational nuances. Designed for how business actually works here.",
+    stat: "Pan",
+    statLabel: "India Focus",
+    icon: MapPin,
   },
 ];
 
@@ -119,13 +119,12 @@ export default function WhyChooseUs() {
         </motion.div>
       </div>
 
-
       <div className="relative z-10">
         <div className="mb-24 text-left">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-[1px] h-6 bg-[#E65100]"></div>
             <span className="text-xs font-bold tracking-[0.15em] uppercase text-[#E65100]">
-              Why L2L
+              Why Link2Logistics
             </span>
           </div>
 
@@ -137,7 +136,7 @@ export default function WhyChooseUs() {
                 transition={{ duration: 1, ease: "easeOut" }}
                 className="block"
               >
-                Logistics infrastructure,
+                Built for reliability,
               </motion.span>
             </span>
             <span className="block overflow-hidden">
@@ -147,7 +146,7 @@ export default function WhyChooseUs() {
                 transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
                 className="block text-[#E65100]"
               >
-                built for the modern era.
+                transparency & success.
               </motion.span>
             </span>
           </h2>
@@ -161,4 +160,4 @@ export default function WhyChooseUs() {
       </div>
     </section>
   );
-}
+}
