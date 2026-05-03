@@ -7,7 +7,9 @@ import HeroSection from '@/components/commonfiles/HeroSection'
 import HowItWorks from '@/components/commonfiles/HowItWorks'
 import WhyWarehouseHub from '@/components/commonfiles/WhyWarehouseHub'
 import Login from '@/components/commonfiles/Login'
-import GetStarted from '@/components/commonfiles/GetStarted'
+import TheProblem from '@/components/commonfiles/TheProblem';
+import UserSegments from '@/components/commonfiles/UserSegments';
+import FinalCTA from '@/components/commonfiles/FinalCTA';
 import Footer from '@/components/commonfiles/Footer'
 import MerchantDashboard from '@/components/merchant/MerchantDashboard'
 import OwnerDashboard from '@/components/owner/OwnerDashboard'
@@ -123,10 +125,12 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50 text-slate-900" suppressHydrationWarning>
       <Navbar />
       <HeroSection />
+      <TheProblem />
       <WhyWarehouseHub />
       <HowItWorks />
       <Login onLoginSuccess={(userData) => setUser(userData)} />
-      <GetStarted />
+      <UserSegments />
+      <FinalCTA />
       <Footer />
       
       {/* ── 4. Floating Feedback Widget ── */}

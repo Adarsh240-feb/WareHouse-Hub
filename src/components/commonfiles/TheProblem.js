@@ -2,11 +2,11 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 
-const phases = [
+const problems = [
   {
-    title: "Initialize Profile",
-    label: "PHASE 01",
-    desc: "Establish your verified business identity. Business Clients (Seekers) and Warehouse Partners (Providers) undergo a rapid 2-minute authentication process.",
+    title: "Finding Capacity is Hard",
+    label: "PROBLEM 01",
+    desc: "You need warehouse space. You make calls. Check relationships. No organized way to discover available capacity, compare operators, or validate pricing.",
     logo: (
       <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="currentColor" strokeWidth="0.8">
         <rect x="25" y="25" width="50" height="50" rx="1" />
@@ -17,9 +17,9 @@ const phases = [
     )
   },
   {
-    title: "Discover Assets",
-    label: "PHASE 02",
-    desc: "Access our proprietary filtering engine. Match your specific logistics footprint with high-precision verified hubs.",
+    title: "Sourcing Takes Time",
+    label: "PROBLEM 02",
+    desc: "Each requirement means starting from scratch. No centralized way to see what's available. Manual coordination with multiple operators. High friction sourcing.",
     logo: (
       <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="currentColor" strokeWidth="0.8">
         <path d="M30 30h40v40H30z" strokeDasharray="3 3" />
@@ -30,9 +30,9 @@ const phases = [
     )
   },
   {
-    title: "Confirm & Secure",
-    label: "PHASE 03",
-    desc: "Finalize agreements via direct encrypted channels. B2B infrastructure built for speed and legal transparency.",
+    title: "Terms Lack Clarity",
+    label: "PROBLEM 03",
+    desc: "Pricing varies. SLAs unclear. No standardization. Direct negotiation with operators but no verification mechanism. Risk on both sides.",
     logo: (
       <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="currentColor" strokeWidth="0.8">
         <path d="M50 15L20 30v40l30 15 30-15V30L50 15z" />
@@ -43,14 +43,11 @@ const phases = [
   }
 ];
 
-// Fix 5: Extracted into a proper component so useTransform is called at the
-// top level of a component, not inside a .map() (which breaks rules of hooks).
-// This also means React can correctly track and clean up the MotionValues.
-function PhaseCard({ phase, scrollYProgress, index, total }) {
+function ProblemCard({ phase, scrollYProgress, index, total }) {
   const start = index / total;
   const end = (index + 1) / total;
 
-  // Incresed from 0.05 to 0.12 for a longer, smoother fade effect
+  // Increased from 0.05 to 0.12 for a longer, smoother fade effect
   const fade = 0.12;
 
   const opacity = useTransform(scrollYProgress, (v) => {
@@ -120,7 +117,7 @@ function PhaseCard({ phase, scrollYProgress, index, total }) {
   );
 }
 
-export default function HowItWorks() {
+export default function TheProblem() { // Renamed from HowItWorks to avoid duplicates
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -196,7 +193,7 @@ export default function HowItWorks() {
                     className="absolute inset-0 bg-[#E65100]"
                   />
                 </div>
-                <span className="text-[10px] font-bold tracking-[0.4em] uppercase text-[#E65100]">The Workflow</span>
+                <span className="text-[10px] font-bold tracking-[0.4em] uppercase text-[#E65100]">The Problem</span>
               </div>
 
               {/* Masked Text Reveal Animation */}
@@ -208,7 +205,7 @@ export default function HowItWorks() {
                     transition={{ duration: 0.8, ease: [0.33, 1, 0.68, 1] }}
                     className="block"
                   >
-                    Strategic
+                    Sourcing
                   </motion.span>
                 </span>
                 <span className="block overflow-hidden pb-4">
@@ -218,7 +215,7 @@ export default function HowItWorks() {
                     transition={{ duration: 0.8, delay: 0.1, ease: [0.33, 1, 0.68, 1] }}
                     className="block text-slate-200"
                   >
-                    Execution.
+                    Fragmented.
                   </motion.span>
                 </span>
               </h2>
@@ -227,15 +224,15 @@ export default function HowItWorks() {
             <div className="w-16 h-[1px] bg-[#E65100] transition-all duration-1000" />
           </div>
 
-          {/* RIGHT SIDE: Phase Cards — rendered as proper components, not inline */}
+          {/* RIGHT SIDE: Phase Cards */}
           <div className="relative h-[450px] w-full">
-            {phases.map((phase, index) => (
-              <PhaseCard
+            {problems.map((phase, index) => (
+              <ProblemCard
                 key={index}
                 phase={phase}
                 scrollYProgress={scrollYProgress}
                 index={index}
-                total={phases.length}
+                total={problems.length}
               />
             ))}
           </div>
