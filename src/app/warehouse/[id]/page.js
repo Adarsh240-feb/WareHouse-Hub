@@ -346,6 +346,23 @@ export default function WarehouseDetailPage({ params }) {
                     <Lock className="w-5 h-5 text-orange-400" />
                     Login to Message
                   </motion.a>
+                ) : (user.uid === warehouse.ownerId || user.email?.toLowerCase() === warehouse.email?.toLowerCase()) ? (
+                  /* Owner viewing their own warehouse — no Send Inquiry */
+                  <div className="space-y-3">
+                    <div className="w-full py-4 bg-emerald-50 border border-emerald-200 text-emerald-700 font-black rounded-2xl flex items-center justify-center gap-3">
+                      <CheckCircle2 className="w-5 h-5" />
+                      Your Property
+                    </div>
+                    <motion.a 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      href="/#dashboard"
+                      className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all shadow-lg shadow-slate-900/20 flex items-center justify-center gap-3 text-sm"
+                    >
+                      <Home className="w-5 h-5" />
+                      Go to Dashboard
+                    </motion.a>
+                  </div>
                 ) : (
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
