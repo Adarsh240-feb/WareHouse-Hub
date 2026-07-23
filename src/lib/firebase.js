@@ -16,10 +16,23 @@
  *   npx firebase emulators:start --only auth
  *
  * In production the emulator is never used — real Firebase runs as normal.
+ *
+ * ── reCAPTCHA Enterprise (Firebase v10+) ────────────────────────────────────
+ * Firebase JS SDK v10+ uses reCAPTCHA Enterprise for phone auth by default.
+ * Required setup (one-time):
+ *  1. Google Cloud Console → enable "reCAPTCHA Enterprise API" for your project
+ *  2. Firebase Console → Authentication → Settings → reCAPTCHA Enterprise → Enable
+ *  3. Firebase Console → Authentication → Settings → Authorized Domains → add your domain
  */
 
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, setPersistence, browserSessionPersistence, connectAuthEmulator } from 'firebase/auth';
+import {
+    getAuth,
+    setPersistence,
+    browserSessionPersistence,
+    connectAuthEmulator,
+    initializeRecaptchaConfig,
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -61,6 +74,18 @@ if (
     } catch {
         // Already connected (hot-reload) — safe to ignore
     }
+}
+
+// Firebase v10+ uses reCAPTCHA Enterprise for phone auth by default.
+// Pre-loading the config here ensures the first OTP request is instant
+// and avoids the "Failed to initialize reCAPTCHA Enterprise" console warning.
+// Skipped when using the Auth Emulator (emulator needs no reCAPTCHA).
+if (typeof window !== 'undefined' && !useAuthEmulator) {
+    initializeRecaptchaConfig(auth).catch(() => {
+        // Silently ignore — happens if reCAPTCHA Enterprise API isn't enabled yet.
+        // Firebase will automatically fall back to reCAPTCHA v2 in that case.
+        // To fix permanently: enable reCAPTCHA Enterprise in Google Cloud Console.
+    });
 }
 
 // Set persistence to sessionStorage so each browser tab has its own
